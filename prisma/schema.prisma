@@ -1,0 +1,333 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DataProvider {
+  WBSC
+  MLB_STATS_API
+  BASEBALL_SAVANT
+  FANGRAPHS
+  NPB_OFFICIAL
+  MANUAL_REVIEW
+}
+
+enum ImportStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum GameStatus {
+  SCHEDULED
+  LIVE
+  FINAL
+  POSTPONED
+  CANCELLED
+}
+
+enum HalfInning {
+  TOP
+  BOTTOM
+}
+
+enum PitcherRole {
+  SP
+  RP
+  CL
+}
+
+model DataSource {
+  id          String         @id @default(cuid())
+  provider    DataProvider
+  name        String
+  baseUrl     String
+  licenseNote String?
+  createdAt   DateTime       @default(now())
+  runs        ImportRun[]
+
+  @@unique([provider, baseUrl])
+}
+
+model ImportRun {
+  id           String       @id @default(cuid())
+  sourceId     String
+  source       DataSource   @relation(fields: [sourceId], references: [id])
+  status       ImportStatus @default(PENDING)
+  entityType   String
+  sourceUrl    String
+  checksum     String?
+  requestedAt  DateTime     @default(now())
+  completedAt  DateTime?
+  recordsRead  Int          @default(0)
+  recordsSaved Int          @default(0)
+  errorMessage String?
+  metadata     Json?
+  rawRecords   RawRecord[]
+
+  @@index([sourceId, requestedAt])
+}
+
+model RawRecord {
+  id           String    @id @default(cuid())
+  importRunId  String
+  importRun    ImportRun @relation(fields: [importRunId], references: [id], onDelete: Cascade)
+  entityType   String
+  externalId   String?
+  payload      Json
+  normalizedAt DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@index([importRunId, entityType])
+}
+
+model Tournament {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  nameZh      String
+  nameEn      String
+  year        Int
+  organiser   String
+  startsOn    DateTime?
+  endsOn      DateTime?
+  rules       Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  teams       TournamentTeam[]
+  rosters     Roster[]
+  games       Game[]
+}
+
+model Team {
+  id         String           @id @default(cuid())
+  code       String           @unique
+  nameZh     String
+  nameEn     String
+  federation String?
+  color      String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  tournaments TournamentTeam[]
+  rosters    Roster[]
+  homeGames  Game[]           @relation("homeTeam")
+  awayGames  Game[]           @relation("awayTeam")
+}
+
+model TournamentTeam {
+  tournamentId String
+  teamId       String
+  groupCode    String?
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team         Team       @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@id([tournamentId, teamId])
+}
+
+model Player {
+  id           String           @id @default(cuid())
+  canonicalName String
+  nameZh       String?
+  nameEn       String?
+  birthDate    DateTime?
+  bats         String?
+  throws       String?
+  heightCm     Int?
+  weightKg     Int?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  identities   PlayerIdentity[]
+  rosterMembers RosterMember[]
+  battingStats PlayerBattingSeason[]
+  pitchingStats PlayerPitchingSeason[]
+  defenseStats PlayerDefenseSeason[]
+  plateAppearances PlateAppearance[] @relation("paBatter")
+  plateAppearancesPitched PlateAppearance[] @relation("paPitcher")
+  pitchesThrown Pitch[]              @relation("pitchPitcher")
+}
+
+model PlayerIdentity {
+  id         String       @id @default(cuid())
+  playerId   String
+  provider   DataProvider
+  externalId String
+  sourceUrl  String?
+  verifiedAt DateTime?
+  player     Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId])
+  @@index([playerId])
+}
+
+model Roster {
+  id           String        @id @default(cuid())
+  tournamentId String
+  teamId       String
+  announcedOn  DateTime?
+  sourceUrl    String
+  verifiedAt   DateTime?
+  tournament   Tournament    @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  team         Team          @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  members      RosterMember[]
+
+  @@unique([tournamentId, teamId])
+}
+
+model RosterMember {
+  id            String       @id @default(cuid())
+  rosterId      String
+  playerId      String
+  jerseyNumber  Int?
+  rosterStatus  String
+  primaryPosition String?
+  pitcherRole   PitcherRole?
+  battingOrder  Int?
+  isActive      Boolean      @default(true)
+  roster        Roster       @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  player        Player       @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([rosterId, playerId])
+  @@index([playerId])
+}
+
+model PlayerBattingSeason {
+  id          String   @id @default(cuid())
+  playerId    String
+  season      Int
+  competition String
+  teamCode    String?
+  pa          Int      @default(0)
+  ab          Int      @default(0)
+  h           Int      @default(0)
+  hr          Int      @default(0)
+  bb          Int      @default(0)
+  so          Int      @default(0)
+  sb          Int      @default(0)
+  avg         Float?
+  obp         Float?
+  slg         Float?
+  wrcPlus     Float?
+  war         Float?
+  whiffPct    Float?
+  sprintSpeed Float?
+  sourceUrl   String
+  retrievedAt DateTime @default(now())
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, season, competition, teamCode])
+  @@index([season, competition])
+}
+
+model PlayerPitchingSeason {
+  id                    String   @id @default(cuid())
+  playerId              String
+  season                Int
+  competition           String
+  teamCode              String?
+  inningsPitched        Float    @default(0)
+  gamesStarted          Int      @default(0)
+  era                   Float?
+  fip                   Float?
+  whip                  Float?
+  k9                    Float?
+  bb9                   Float?
+  avgVelocity           Float?
+  velocityDeclinePer25  Float?
+  sourceUrl             String
+  retrievedAt           DateTime @default(now())
+  player                Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, season, competition, teamCode])
+  @@index([season, competition])
+}
+
+model PlayerDefenseSeason {
+  id          String   @id @default(cuid())
+  playerId    String
+  season      Int
+  competition String
+  position    String
+  innings     Float    @default(0)
+  uzr         Float?
+  uzr150      Float?
+  drs         Float?
+  oaa         Float?
+  sourceUrl   String
+  retrievedAt DateTime @default(now())
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
+  @@unique([playerId, season, competition, position])
+}
+
+model Game {
+  id              String          @id @default(cuid())
+  tournamentId    String
+  externalId      String?
+  scheduledAt     DateTime
+  venue           String?
+  status          GameStatus
+  homeTeamId      String
+  awayTeamId      String
+  homeScore       Int?
+  awayScore       Int?
+  innings         Int?
+  officialSourceUrl String?
+  verifiedAt      DateTime?
+  tournament      Tournament      @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  homeTeam        Team            @relation("homeTeam", fields: [homeTeamId], references: [id])
+  awayTeam        Team            @relation("awayTeam", fields: [awayTeamId], references: [id])
+  plateAppearances PlateAppearance[]
+
+  @@unique([tournamentId, externalId])
+  @@index([tournamentId, scheduledAt])
+}
+
+model PlateAppearance {
+  id            String     @id @default(cuid())
+  gameId        String
+  sequence      Int
+  inning        Int
+  half          HalfInning
+  batterId      String
+  pitcherId     String
+  outsBefore    Int
+  baseStateBefore String
+  event         String
+  runsScored    Int        @default(0)
+  rbi           Int        @default(0)
+  wpaHome       Float?
+  re24          Float?
+  game          Game       @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  batter        Player     @relation("paBatter", fields: [batterId], references: [id])
+  pitcher       Player     @relation("paPitcher", fields: [pitcherId], references: [id])
+  pitches       Pitch[]
+
+  @@unique([gameId, sequence])
+  @@index([gameId, inning, half])
+}
+
+model Pitch {
+  id                String          @id @default(cuid())
+  plateAppearanceId String
+  sequence          Int
+  pitchNumber       Int
+  pitchType         String?
+  result            String
+  ballsBefore       Int
+  strikesBefore     Int
+  releaseSpeed      Float?
+  zone              Int?
+  xwoba             Float?
+  isPitchComChange  Boolean         @default(false)
+  pitchComLatencyMs Int?
+  pitchTimerSeconds Float?
+  pitcherId         String
+  plateAppearance   PlateAppearance @relation(fields: [plateAppearanceId], references: [id], onDelete: Cascade)
+  pitcher           Player          @relation("pitchPitcher", fields: [pitcherId], references: [id])
+
+  @@unique([plateAppearanceId, sequence])
+}

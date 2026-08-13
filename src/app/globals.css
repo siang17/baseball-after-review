@@ -1,0 +1,173 @@
+@import 'tailwindcss';
+
+/* ------------------------------------------------------------------ */
+/* BAR Design Tokens — 華航白色登機風                                   */
+/* China Airlines White Boarding Pass Style                            */
+/* ------------------------------------------------------------------ */
+
+@theme {
+  /* 主背景：極簡質感白 */
+  --color-paper: #f8f9fa;
+  --color-paper-pure: #ffffff;
+  --color-paper-sunken: #eef1f4;
+
+  /* 品牌主色：華航深藍 / 黛藍 */
+  --color-navy: #002244;
+  --color-ink: #0b2545;
+  --color-ink-soft: #33506f;
+  --color-ink-muted: #7b8a9c;
+
+  /* 輔助強調：梅花紅 / 警示橘 */
+  --color-plum: #d9381e;
+  --color-alert: #ff6b35;
+  --color-alert-soft: #fff1e9;
+
+  /* 中性線條 */
+  --color-line: #e2e6ea;
+  --color-line-strong: #c8d0d8;
+
+  /* 看板（Flight Status Board）反白區 */
+  --color-board: #071b33;
+  --color-board-text: #f2f6fa;
+  --color-board-amber: #ffb300;
+  --color-board-green: #2ecc71;
+
+  --font-ticket: 'DIN Alternate', 'Roboto Condensed', 'Helvetica Neue',
+    'Noto Sans TC', 'Microsoft JhengHei', system-ui, sans-serif;
+  --font-mono-ticket: 'JetBrains Mono', 'SF Mono', 'Cascadia Mono', Consolas,
+    'Courier New', monospace;
+
+  --radius-pass: 14px;
+
+  /* 登機證卡片的紙質陰影 */
+  --shadow-ticket: 0 1px 2px rgb(11 37 69 / 0.06), 0 8px 24px -16px rgb(11 37 69 / 0.35);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-ticket);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ------------------------------------------------------------------ */
+/* 登機證：撕票齒孔與虛線分隔                                          */
+/* ------------------------------------------------------------------ */
+
+@utility perforation-y {
+  /* 垂直虛線（票根左側） */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--color-line-strong) 0 6px,
+    transparent 6px 12px
+  );
+  background-size: 1px 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+@utility perforation-x {
+  background-image: repeating-linear-gradient(
+    to right,
+    var(--color-line-strong) 0 6px,
+    transparent 6px 12px
+  );
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+/* 票券左右兩側的半圓凹口 */
+@utility ticket-notch {
+  position: relative;
+}
+
+/* ------------------------------------------------------------------ */
+/* 航班看板：翻牌動畫                                                  */
+/* ------------------------------------------------------------------ */
+
+@keyframes flap-in {
+  0% {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  60% {
+    transform: rotateX(12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.flap {
+  display: inline-block;
+  transform-origin: top center;
+  animation: flap-in 320ms ease-out both;
+}
+
+@keyframes led-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0.25;
+  }
+}
+
+.led-blink {
+  animation: led-blink 1s step-end infinite;
+}
+
+/* Pitch Timer 逼近歸零時的脈動 */
+@keyframes clock-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(255 107 53 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgb(255 107 53 / 0);
+  }
+}
+
+.clock-pulse {
+  animation: clock-pulse 900ms ease-out infinite;
+}
+
+/* 黑匣子警報掃描線 */
+@keyframes alert-sweep {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+.alert-sweep {
+  background-image: linear-gradient(
+    100deg,
+    transparent 40%,
+    rgb(255 255 255 / 0.35) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: alert-sweep 2.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flap,
+  .led-blink,
+  .clock-pulse,
+  .alert-sweep {
+    animation: none;
+  }
+}
