@@ -1,11 +1,17 @@
 'use client';
 
+import { ScatterPlotStudio } from '@/components/analysis/ScatterPlotStudio';
 import { METRICS, METRIC_KEYS } from '@/lib/constants';
+import { allPlayers } from '@/data/rosters';
 import { useAppStore } from '@/store/useAppStore';
 
+/** 名單資料是靜態的，模組載入時算一次即可，避免每次 render 都重新 flatMap。 */
+const ALL_PLAYERS = allPlayers();
+
 /**
- * 散佈圖分析器 (Scatter Plot Studio) —— 版面骨架。
- * TODO: 接上 Recharts ScatterChart，以 ScatterPlotConfig 驅動 X/Y/氣泡大小與篩選。
+ * 散佈圖分析器 (Scatter Plot Studio)。
+ * 資料來自 2024 十二強 + 2026 WBC 全部 12 隊名單（真實姓名／守位，統計數字為示範虛構值）。
+ * 不同資料域（打擊／投球／守備）的指標互相搭配時本來就不會有交集。
  */
 export default function ScatterPage() {
   const lang = useAppStore((s) => s.lang);
@@ -22,6 +28,8 @@ export default function ScatterPage() {
             : 'Pick any X/Y pair — UZR vs. attendance, whiff% vs. sprint speed, pitch count vs. velocity decline.'}
         </p>
       </header>
+
+      <ScatterPlotStudio players={ALL_PLAYERS} lang={lang} />
 
       <div className="rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4">
         <h2 className="text-[10px] font-bold uppercase tracking-[0.22em] text-ink-muted">

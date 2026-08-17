@@ -230,12 +230,43 @@ export interface Team {
   colorAccent: string;
 }
 
+/** 教練團職稱。職稱不易分類（合併職）時搭配 `Coach.roleLabel` 顯示原文。 */
+export type CoachRole =
+  | 'HEAD_COACH'
+  | 'PITCHING_COACH'
+  | 'BATTING_COACH'
+  | 'ASSISTANT_BATTING_COACH'
+  | 'INFIELD_COACH'
+  | 'OUTFIELD_COACH'
+  | 'INFIELD_OUTFIELD_COACH'
+  | 'BULLPEN_COACH'
+  | 'BULLPEN_CATCHER'
+  | 'FIRST_BASE_COACH'
+  | 'THIRD_BASE_COACH'
+  | 'BASERUNNING_COACH'
+  | 'CONDITIONING_COACH'
+  | 'TACTICAL_COACH'
+  | 'OTHER';
+
+/** 教練團成員（不含總教練，總教練仍用 `Manager`）。 */
+export interface Coach {
+  id: string;
+  teamCode: TeamCode;
+  era: Era;
+  name: Bilingual;
+  role: CoachRole;
+  /** 職稱不易分類（如「外野守備兼跑壘教練」合併職）時，這裡放原始職稱文字。 */
+  roleLabel: Bilingual;
+}
+
 /** 一支球隊在某一屆的完整名單。 */
 export interface Roster {
   teamCode: TeamCode;
   era: Era;
   tournamentId: TournamentId;
   manager: Manager;
+  /** 總教練以外的教練團成員。 */
+  coachingStaff: Coach[];
   /** 先發 9 人（含 DH），依 battingOrder 排序。 */
   lineup: Player[];
   bench: Player[];
