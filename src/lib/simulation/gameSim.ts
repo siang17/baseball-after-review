@@ -128,8 +128,13 @@ function pitchesFor(outcome: Outcome, rand: () => number): number {
 /* 壘包推進                                                            */
 /* ------------------------------------------------------------------ */
 
-/** 壘包：[一壘, 二壘, 三壘]，1 = 有人。 */
-type Bases = [number, number, number];
+/**
+ * 壘包：[一壘, 二壘, 三壘]，值為該壘跑者的 playerId，null = 無人。
+ * 用真實 id（而非 0/1 旗標）才能產生 `types/baseball.ts` 的 `BaseState`，
+ * 供逐球復盤（壘包示意圖、RE24）使用；純聚合的 `matchupSimulator.ts`
+ * 不讀取壘包內容，因此這裡的型別調整不影響它的行為。
+ */
+export type Bases = [string | null, string | null, string | null];
 
 interface AdvanceResult {
   runs: number;
@@ -144,6 +149,7 @@ function applyOutcome(
   bases: Bases,
   outs: number,
   outcome: Outcome,
+  batterId: string,
   speed: number,
   rand: () => number,
 ): AdvanceResult {
@@ -154,61 +160,72 @@ function applyOutcome(
 
   switch (outcome) {
     case 'BB': {
-      // 只有被擠壓時才推進。
-      if (!bases[0]) bases[0] = 1;
-      else if (!bases[1]) bases[1] = 1;
-      else if (!bases[2]) bases[2] = 1;
-      else runs += 1; // 滿壘保送擠回一分
+      // 只有被擠壓時才強迫推進；被擠壓的跑者依序往下一個壘包移動。
+      if (!bases[0]) {
+        bases[0] = batterId;
+      } else if (!bases[1]) {
+        bases[1] = bases[0];
+        bases[0] = batterId;
+      } else if (!bases[2]) {
+        bases[2] = bases[1];
+        bases[1] = bases[0];
+        bases[0] = batterId;
+      } else {
+        runs += 1; // 滿壘保送擠回一分
+        bases[2] = bases[1];
+        bases[1] = bases[0];
+        bases[0] = batterId;
+      }
       break;
     }
 
     case 'SINGLE': {
       if (bases[2]) {
         runs += 1;
-        bases[2] = 0;
+        bases[2] = null;
       }
       if (bases[1]) {
         // 二壘跑者是否回本壘
         if (rand() < 0.55 + speedEdge) runs += 1;
-        else bases[2] = 1;
-        bases[1] = 0;
+        else bases[2] = bases[1];
+        bases[1] = null;
       }
       if (bases[0]) {
         // 一壘跑者上三壘（若三壘已被佔用則只能到二壘）
-        if (!bases[2] && rand() < 0.28 + speedEdge) bases[2] = 1;
-        else bases[1] = 1;
-        bases[0] = 0;
+        if (!bases[2] && rand() < 0.28 + speedEdge) bases[2] = bases[0];
+        else bases[1] = bases[0];
+        bases[0] = null;
       }
-      bases[0] = 1;
+      bases[0] = batterId;
       break;
     }
 
     case 'DOUBLE': {
-      runs += bases[1] + bases[2];
-      bases[1] = 0;
-      bases[2] = 0;
+      runs += (bases[1] ? 1 : 0) + (bases[2] ? 1 : 0);
+      bases[1] = null;
+      bases[2] = null;
       if (bases[0]) {
         if (rand() < 0.45 + speedEdge) runs += 1;
-        else bases[2] = 1;
-        bases[0] = 0;
+        else bases[2] = bases[0];
+        bases[0] = null;
       }
-      bases[1] = 1;
+      bases[1] = batterId;
       break;
     }
 
     case 'TRIPLE': {
-      runs += bases[0] + bases[1] + bases[2];
-      bases[0] = 0;
-      bases[1] = 0;
-      bases[2] = 1;
+      runs += (bases[0] ? 1 : 0) + (bases[1] ? 1 : 0) + (bases[2] ? 1 : 0);
+      bases[0] = null;
+      bases[1] = null;
+      bases[2] = batterId;
       break;
     }
 
     case 'HR': {
-      runs += 1 + bases[0] + bases[1] + bases[2];
-      bases[0] = 0;
-      bases[1] = 0;
-      bases[2] = 0;
+      runs += 1 + (bases[0] ? 1 : 0) + (bases[1] ? 1 : 0) + (bases[2] ? 1 : 0);
+      bases[0] = null;
+      bases[1] = null;
+      bases[2] = null;
       break;
     }
 
@@ -222,22 +239,22 @@ function applyOutcome(
       const dpChance = Math.max(0.04, 0.13 - speedEdge);
       if (newOuts < 2 && bases[0] && rand() < dpChance) {
         newOuts += 2;
-        bases[0] = 0;
+        bases[0] = null;
         // 二壘跑者常趁機推進
         if (bases[1] && rand() < 0.4) {
-          bases[1] = 0;
-          bases[2] = 1;
+          bases[2] = bases[1];
+          bases[1] = null;
         }
       } else {
         newOuts += 1;
         if (newOuts < 3 && bases[2] && rand() < 0.32) {
           // 高飛犧牲打
           runs += 1;
-          bases[2] = 0;
+          bases[2] = null;
         } else if (newOuts < 3 && bases[0] && !bases[1] && rand() < 0.25) {
           // 滾地推進
-          bases[0] = 0;
-          bases[1] = 1;
+          bases[1] = bases[0];
+          bases[0] = null;
         }
       }
       break;
@@ -323,6 +340,30 @@ function changePitcher(state: TeamGameState, forcedByLimit: boolean, toCloser = 
 }
 
 /* ------------------------------------------------------------------ */
+/* 逐打席事件（供逐球復盤產生器使用；純聚合模擬不傳入回呼即可忽略）        */
+/* ------------------------------------------------------------------ */
+
+export interface PlateAppearanceEvent {
+  inning: number;
+  half: HalfInning;
+  offenseCode: TeamCode;
+  defenseCode: TeamCode;
+  batterId: string;
+  pitcherId: string;
+  outcome: Outcome;
+  /** 這個打席花的球數（不含前一打席）。 */
+  pitchesThrown: number;
+  basesBefore: Bases;
+  basesAfter: Bases;
+  outsBefore: number;
+  outsAfter: number;
+  runsScored: number;
+  /** 投手（防守方）投完這球之後的本場累計用球數。 */
+  cumulativePitchCount: number;
+  timesThroughOrder: number;
+}
+
+/* ------------------------------------------------------------------ */
 /* 半局模擬                                                            */
 /* ------------------------------------------------------------------ */
 
@@ -335,13 +376,18 @@ function simulateHalfInning(
   /** 領先方需要的分數上限：主隊再見安打時提前結束。 */
   walkOffTarget: number | null,
   rand: () => number,
+  onPlateAppearance?: (event: PlateAppearanceEvent) => void,
 ): number {
   let outs = 0;
   let runs = 0;
-  const bases: Bases = [0, 0, 0];
+  const bases: Bases = [null, null, null];
+  const half: HalfInning = isHomeOffense ? 'BOTTOM' : 'TOP';
 
-  // 延長賽突破僵局制：二壘先放一名跑者。
-  if (opts.extraInningRunner && inning > 9) bases[1] = 1;
+  // 延長賽突破僵局制：二壘先放一名跑者（依國際賽規則，為打序上一位打者）。
+  if (opts.extraInningRunner && inning > 9) {
+    const ghostIndex = (((offense.lineupIndex - 1) % 9) + 9) % 9;
+    bases[1] = offense.team.lineup[ghostIndex].playerId;
+  }
 
   while (outs < 3) {
     const batter = offense.team.lineup[offense.lineupIndex % 9];
@@ -355,16 +401,37 @@ function simulateHalfInning(
     });
 
     const outcome = OUTCOMES[sampleIndex(probs, rand)];
+    const pitchesThrown = pitchesFor(outcome, rand);
 
     // 用球數與打者數先累計，因為達上限的投手可投完當前打者。
-    defense.pitchCount += pitchesFor(outcome, rand);
+    defense.pitchCount += pitchesThrown;
     defense.battersFacedByCurrent += 1;
     offense.lineupIndex += 1;
 
-    const applied = applyOutcome(bases, outs, outcome, batter.speed, rand);
+    const outsBefore = outs;
+    const basesBefore: Bases = [...bases];
+    const applied = applyOutcome(bases, outs, outcome, batter.playerId, batter.speed, rand);
     outs = applied.outs;
     runs += applied.runs;
     defense.runsByCurrent += applied.runs;
+
+    onPlateAppearance?.({
+      inning,
+      half,
+      offenseCode: offense.team.code,
+      defenseCode: defense.team.code,
+      batterId: batter.playerId,
+      pitcherId: pitcher.playerId,
+      outcome,
+      pitchesThrown,
+      basesBefore,
+      basesAfter: [...bases],
+      outsBefore,
+      outsAfter: outs,
+      runsScored: applied.runs,
+      cumulativePitchCount: defense.pitchCount,
+      timesThroughOrder: timesThrough,
+    });
 
     // 再見分：主隊在九局下（含延長）超前即結束。
     if (walkOffTarget !== null && runs >= walkOffTarget) return runs;
@@ -395,6 +462,8 @@ export function simulateGame(
   away: SimTeam,
   opts: GameSimOptions,
   rand: () => number,
+  /** 逐打席事件回呼；只有逐球復盤產生器需要，聚合模擬不傳即可。 */
+  onPlateAppearance?: (event: PlateAppearanceEvent) => void,
 ): GameResult {
   const homeState = initTeamState(home);
   const awayState = initTeamState(away);
@@ -407,7 +476,7 @@ export function simulateGame(
   let inning = 1;
   for (; inning <= opts.maxInnings; inning++) {
     // ---- 上半局：客隊進攻 ----
-    awayScore += simulateHalfInning(awayState, homeState, opts, inning, false, null, rand);
+    awayScore += simulateHalfInning(awayState, homeState, opts, inning, false, null, rand, onPlateAppearance);
     timeline.push({ inning, half: 'TOP', home: homeScore, away: awayScore });
 
     if (opts.mercyRule && mercyReached(inning, homeScore, awayScore)) {
@@ -421,7 +490,7 @@ export function simulateGame(
     // ---- 下半局：主隊進攻 ----
     // 九局下（含延長）只要超前就結束（再見）。
     const walkOff = inning >= 9 ? Math.max(1, awayScore - homeScore + 1) : null;
-    homeScore += simulateHalfInning(homeState, awayState, opts, inning, true, walkOff, rand);
+    homeScore += simulateHalfInning(homeState, awayState, opts, inning, true, walkOff, rand, onPlateAppearance);
     timeline.push({ inning, half: 'BOTTOM', home: homeScore, away: awayScore });
 
     if (opts.mercyRule && mercyReached(inning, homeScore, awayScore)) {
