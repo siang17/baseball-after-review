@@ -121,7 +121,18 @@ interface PaRecord {
 /* 主函式                                                              */
 /* ------------------------------------------------------------------ */
 
+export interface GameReviewResult {
+  review: GameReview;
+  /** 每一球所屬打席的最終結果（K/BB/HR/…），供打擊軌跡圖等需要「這球後來是不是全壘打」的元件使用。 */
+  outcomeByPitchId: Record<string, PlateAppearanceEvent['outcome']>;
+}
+
+/** 只需要 `GameReview` 本身時的簡便包裝。 */
 export function generateGameReview(homeRoster: Roster, awayRoster: Roster, game: Game, seed: string): GameReview {
+  return generateGameReviewDetailed(homeRoster, awayRoster, game, seed).review;
+}
+
+export function generateGameReviewDetailed(homeRoster: Roster, awayRoster: Roster, game: Game, seed: string): GameReviewResult {
   const homeTeam = buildSimTeam(homeRoster);
   const awayTeam = buildSimTeam(awayRoster);
 
@@ -297,14 +308,21 @@ export function generateGameReview(homeRoster: Roster, awayRoster: Roster, game:
   /* ---------------- 投手使用紀錄 ---------------- */
   const pitcherUsage = buildPitcherUsage(records, game);
 
+  /* ---------------- 逐球結果對照（打擊軌跡圖等用） ---------------- */
+  const outcomeByPitchId: Record<string, PlateAppearanceEvent['outcome']> = {};
+  for (const r of records) for (const p of r.pitches) outcomeByPitchId[p.id] = r.event.outcome;
+
   return {
-    game,
-    pitches: allPitches,
-    winProbability,
-    crucialPlays,
-    decisionPoints,
-    pitcherUsage,
-    clockViolations: [],
+    review: {
+      game,
+      pitches: allPitches,
+      winProbability,
+      crucialPlays,
+      decisionPoints,
+      pitcherUsage,
+      clockViolations: [],
+    },
+    outcomeByPitchId,
   };
 }
 

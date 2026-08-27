@@ -110,7 +110,6 @@ export default function CaseStudyPage() {
 
   const setManagerEnabled = useReplayStore((s) => s.setManagerEnabled);
   const setManagerSide = useReplayStore((s) => s.setManagerSide);
-  const openDecision = useReplayStore((s) => s.openDecision);
   const setEraMode = useMatchupStore((s) => s.setEraMode);
   const setTeam = useMatchupStore((s) => s.setTeam);
   const setStep = useMatchupStore((s) => s.setStep);
@@ -126,12 +125,15 @@ export default function CaseStudyPage() {
     [review.crucialPlays],
   );
 
-  /** 帶著「客隊總教練 · 七局下決策點」的狀態跳到復盤頁。 */
+  /**
+   * 以客隊（VEN）總教練身分跳到 /replay，針對 2026 JPN vs VEN 真實名單即時
+   * 產生一場逐球復盤（取代舊版直接塞入本頁這份手寫 demo 決策點的做法）；
+   * /replay 會在載入時自動選好這場比賽、產生復盤，並跳到第一個調度決策點。
+   */
   const startManagerMode = () => {
     setManagerEnabled(true);
     setManagerSide('AWAY');
-    openDecision(decisionPoint);
-    router.push('/replay');
+    router.push('/replay?game=2026-wbc-03-14-jpn-ven&autoDecision=1');
   };
 
   /** 預先設定 2024 中華隊 vs. 2026 日本隊的跨年代對決。 */
@@ -425,8 +427,8 @@ export default function CaseStudyPage() {
               </h3>
               <p className="mt-1 text-xs leading-relaxed text-ink-muted">
                 {lang === 'zh'
-                  ? '直接跳到七局下二出局一二壘、LI 3.41 的決策點，送出後對比歷史選擇與 AI 最佳解。'
-                  : 'Jumps straight to the bottom of the 7th — two outs, runners on first and second, LI 3.41 — then compares your call against the historical and optimal ones.'}
+                  ? '即時產生一場真實先發打線的逐球復盤，跳到全場最高槓桿的調度決策點，送出後對比歷史選擇與 AI 最佳解。'
+                  : 'Generates a fresh pitch-by-pitch review from the real starting lineups, jumps to the highest-leverage decision point, then compares your call against the historical and optimal ones.'}
               </p>
               <span className="mt-3 flex items-center gap-1 text-xs font-bold text-plum">
                 {lang === 'zh' ? '開啟總教練模式' : 'Open manager mode'}

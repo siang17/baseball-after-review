@@ -47,7 +47,7 @@ function pickPitchType(rand: () => number): PitchType {
 }
 
 /** 好球帶邊界（英尺）：x 為左右、z 為高度。 */
-const ZONE = { xMin: -0.83, xMax: 0.83, zMin: 1.5, zMax: 3.5 };
+export const ZONE = { xMin: -0.83, xMax: 0.83, zMin: 1.5, zMax: 3.5 };
 
 function randomInZone(rand: () => number): { x: number; z: number } {
   return {
