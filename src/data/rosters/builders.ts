@@ -75,6 +75,29 @@ function genBattingStats(id: string, positions: Position[]): BattingStats {
   };
 }
 
+const OUTFIELD_POSITIONS: Position[] = ['LF', 'CF', 'RF'];
+
+/**
+ * 把總 UZR 依守位傾向決定性拆成四個分項（範圍/失誤/阻殺/雙殺），
+ * 權重加總後乘回總值，讓分項大致重建出總分——外野手阻殺權重較高、
+ * 內野手雙殺權重較高，符合守位常識但數字本身仍是示範推估。
+ */
+function genUzrComponents(id: string, uzr: number, position: Position): NonNullable<FieldingStats['uzrComponents']> {
+  const isMiddleInfield = MIDDLE_INFIELD.includes(position);
+  const isOutfield = OUTFIELD_POSITIONS.includes(position);
+  const wRng = 0.35 + range(id, 'wRng', 0, 0.25);
+  const wErr = 0.15 + range(id, 'wErr', 0, 0.15);
+  const wArm = (isOutfield ? 0.15 : 0.05) + range(id, 'wArm', 0, 0.1);
+  const wDp = (isMiddleInfield ? 0.15 : 0.03) + range(id, 'wDp', 0, 0.07);
+  const total = wRng + wErr + wArm + wDp;
+  return {
+    rngR: round1((uzr * wRng) / total),
+    errR: round1((uzr * wErr) / total),
+    armR: round1((uzr * wArm) / total),
+    dpr: round1((uzr * wDp) / total),
+  };
+}
+
 /** 與 genBattingStats 共用同一顆 id+field 種子，同一位球員的 UZR 在打擊/守備兩處算出同一個值。 */
 function genFieldingStats(id: string, position: Position): FieldingStats {
   const isMiddleInfield = MIDDLE_INFIELD.includes(position);
@@ -86,7 +109,7 @@ function genFieldingStats(id: string, position: Position): FieldingStats {
     innings: 0,
     uzr,
     uzr150,
-    uzrComponents: { rngR: null, errR: null, armR: null, dpr: null },
+    uzrComponents: genUzrComponents(id, uzr, position),
     drs: null,
     oaa: null,
     fieldingPct: null,

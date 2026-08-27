@@ -362,7 +362,7 @@ function ReviewStep({
 /* 主頁面                                                               */
 /* ------------------------------------------------------------------ */
 
-type FlowStep = 'SELECT_GAME' | 'EDIT_LINEUP' | 'REVIEW';
+type FlowStep = 'SELECT_GAME' | 'CHOOSE_MODE' | 'EDIT_LINEUP' | 'REVIEW';
 
 export default function ReplayPage() {
   const lang = useAppStore((s) => s.lang);
@@ -392,7 +392,7 @@ export default function ReplayPage() {
     setAwayLineup(away.lineup.map((p) => p.id));
     setHomePitcher(home.rotation[0]?.id ?? home.bullpen[0]?.id ?? '');
     setAwayPitcher(away.rotation[0]?.id ?? away.bullpen[0]?.id ?? '');
-    setFlowStep(opts?.skipToReview ? 'REVIEW' : 'EDIT_LINEUP');
+    setFlowStep(opts?.skipToReview ? 'REVIEW' : 'CHOOSE_MODE');
     setCursor(0);
   };
 
@@ -440,7 +440,7 @@ export default function ReplayPage() {
 
       {flowStep === 'SELECT_GAME' && <SelectGameStep onSelect={handleSelectGame} />}
 
-      {flowStep === 'EDIT_LINEUP' && game && homeRoster && awayRoster && (
+      {flowStep === 'CHOOSE_MODE' && game && (
         <div className="space-y-4">
           <button
             type="button"
@@ -449,6 +449,40 @@ export default function ReplayPage() {
           >
             <ChevronLeft size={14} />
             {UI.replay.changeGame[lang]}
+          </button>
+
+          <h2 className="text-sm font-bold text-navy">{UI.replay.chooseModeTitle[lang]}</h2>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setFlowStep('REVIEW')}
+              className="group rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4 text-left transition hover:-translate-y-0.5 hover:border-navy hover:shadow-[0_10px_28px_-18px_rgba(11,37,69,0.5)]"
+            >
+              <h3 className="text-base font-bold text-ink">{UI.replay.currentModeTitle[lang]}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink-muted">{UI.replay.currentModeDesc[lang]}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFlowStep('EDIT_LINEUP')}
+              className="group rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4 text-left transition hover:-translate-y-0.5 hover:border-plum hover:shadow-[0_10px_28px_-18px_rgba(11,37,69,0.5)]"
+            >
+              <h3 className="text-base font-bold text-ink">{UI.replay.customModeTitle[lang]}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink-muted">{UI.replay.customModeDesc[lang]}</p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {flowStep === 'EDIT_LINEUP' && game && homeRoster && awayRoster && (
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => setFlowStep('CHOOSE_MODE')}
+            className="flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-ink"
+          >
+            <ChevronLeft size={14} />
+            {UI.replay.changeMode[lang]}
           </button>
 
           <div className="grid gap-4 lg:grid-cols-2">

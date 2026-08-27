@@ -20,13 +20,12 @@ import { SnubComparison } from '@/components/rosters/SnubComparison';
 import { BaggageTag } from '@/components/ui/BaggageTag';
 import {
   CASE_BULLPEN,
-  CASE_JPN_DEFENDERS,
   CASE_SECTIONS,
-  CASE_SNUBS,
   CASE_TEMPO,
   NPB_DEFENSE_DISCOUNT,
 } from '@/data/case-studies/wbc2026-jpn-ven';
 import { DEMO_GAME_REVIEW } from '@/data/games/wbc2026-jpn-ven';
+import { playerById, rosterFor } from '@/data/rosters';
 import { DEMO_PLAYERS } from '@/data/rosters/demoPlayers';
 import { createPitchLimitConfig } from '@/lib/constants';
 import { bi } from '@/lib/i18n';
@@ -41,14 +40,15 @@ import type { Bilingual, Lang, Player } from '@/types/baseball';
 /* 球員查找                                                            */
 /* ------------------------------------------------------------------ */
 
-const ALL_PLAYERS: Player[] = [
-  ...DEMO_PLAYERS,
-  ...CASE_JPN_DEFENDERS,
-  ...CASE_SNUBS.map((s) => s.player),
-];
-
+/**
+ * 節奏控制／牛棚銜接兩節仍引用 `demoPlayers.ts` 的舊示範球員 id（jpn-sp/ven-sp/jpn-cl），
+ * 遺珠與守備論證兩節已換成 `src/data/rosters` 的真實 2026 名單，因此兩邊都要能查得到。
+ */
 const resolvePlayer = (id: string): Player | null =>
-  ALL_PLAYERS.find((p) => p.id === id) ?? null;
+  playerById(id) ?? DEMO_PLAYERS.find((p) => p.id === id) ?? null;
+
+/** 真實守位/守備分項用來論證「守備範圍 vs. 低失誤」的日本隊守備核心（捕手/游擊/三壘/中外野）。 */
+const JPN_DEFENSIVE_CORE_IDS = ['2026-jpn-c1', '2026-jpn-ss1', '2026-jpn-3b1', '2026-jpn-cf1'];
 
 /* ------------------------------------------------------------------ */
 /* 版面小元件                                                          */
@@ -117,6 +117,14 @@ export default function CaseStudyPage() {
   const review = DEMO_GAME_REVIEW;
   const pitchLimit = React.useMemo(() => createPitchLimitConfig(65, true), []);
   const decisionPoint = review.decisionPoints[0];
+
+  // 遺珠與守備論證改吃 Phase 1 建好的 2026 日本隊真實名單（其餘敘事段落維持原本手寫的示範情境）。
+  const jpnRoster = rosterFor(2026, 'JPN');
+  const realSnubs = jpnRoster?.snubs ?? [];
+  const realDefenders = React.useMemo(
+    () => JPN_DEFENSIVE_CORE_IDS.map((id) => playerById(id)).filter((p): p is Player => p !== null),
+    [],
+  );
   const topPlay = React.useMemo(
     () =>
       [...review.crucialPlays].sort(
@@ -200,8 +208,8 @@ export default function CaseStudyPage() {
 
         <p className="mt-3 rounded-lg border border-alert/40 bg-alert-soft px-3 py-2 text-xs leading-relaxed text-alert">
           {lang === 'zh'
-            ? '⚠️ 本專題全為示範資料：球員以「示範 XX」代稱，數值為虛構，新聞出處留空。內容用於驗證分析框架與版面，不可作為真實賽事結論引用。'
-            : '⚠️ Everything on this page is placeholder data: players are labelled "Demo XX", the numbers are invented, and news sources are left blank. It exists to validate the analysis framework and layout — do not cite it as real findings.'}
+            ? '⚠️ 「球員遺珠評估」與「日本隊守備論證」兩節已換成 2026 日本隊真實名單與真實預測遺珠，但守備分項、比分、逐球內容、節奏與牛棚時序等其餘數字仍是示範用虛構情境，新聞出處留空，不可作為真實賽事結論引用。'
+            : '⚠️ The "Roster Snubs" and "Japan Defense Argument" sections now use the real 2026 Japan roster and real predicted snubs. Everything else on this page — the score, pitch-by-pitch content, tempo, and bullpen sequencing — is still an illustrative placeholder scenario with no real news sources. Do not cite it as real findings.'}
         </p>
       </section>
 
@@ -220,7 +228,7 @@ export default function CaseStudyPage() {
             )}
           />
           <div className="grid gap-4 xl:grid-cols-2">
-            {CASE_SNUBS.map((snub) => (
+            {realSnubs.map((snub) => (
               <SnubComparison
                 key={snub.player.id}
                 snub={snub}
@@ -231,8 +239,8 @@ export default function CaseStudyPage() {
           </div>
           <p className="mt-3 rounded-lg bg-paper-sunken px-3 py-2 text-xs leading-relaxed text-ink-soft">
             {lang === 'zh'
-              ? '三位遺珠的共同點：守備與跑壘領先、打擊產能略遜。在 65 球限制造成的低比分賽制下，一分的守備價值與一分的打擊價值等重 —— 兩隊的選訓邏輯都低估了前者。'
-              : 'The three snubs share a shape: better defense and baserunning, slightly worse bats. In a low-scoring format shaped by the 65-pitch limit, a run saved is worth exactly a run created — and both selection committees under-weighted the former.'}
+              ? '三位遺珠橫跨捕手、外野、牛棚三個位置，各自代表一種容易被最終名單低估的價值面向（配球/框選、長打/守備範圍、局數彈性）——真正的取捨不是「誰比較強」，而是名單建構時哪一類價值被系統性看輕。'
+              : 'The three snubs span catcher, outfield, and bullpen — each representing a type of value the final roster tends to under-weight (framing, power/range, multi-inning flexibility). The real question is not who is better, but which category of value gets systematically discounted when a roster gets built.'}
           </p>
         </section>
 
@@ -248,7 +256,7 @@ export default function CaseStudyPage() {
             )}
           />
           <DefenseArgumentPanel
-            players={CASE_JPN_DEFENDERS}
+            players={realDefenders}
             discount={NPB_DEFENSE_DISCOUNT}
             lang={lang}
             heading={bi('守備範圍 vs. 低失誤：價值來源拆解', 'Range vs. error avoidance: where the value comes from')}
