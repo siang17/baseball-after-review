@@ -51,11 +51,13 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Lan
             lang={lang}
             title={bi('2026 WBC 日本 vs. 委內瑞拉', '2026 WBC Japan vs. Venezuela')}
             subtitle={bi('戰術復盤 · 65 球限制下的牛棚銜接', 'Tactical review · bullpen sequencing under a 65-pitch limit')}
-            flightNo="WBC 026"
-            gate="C"
-            seat="QF"
+            fields={[
+              { label: UI.boardingPass.flight, value: 'WBC 026' },
+              { label: UI.boardingPass.gate, value: 'C', emphasis: true },
+              { label: UI.boardingPass.seat, value: 'QF', emphasis: true },
+              { label: UI.boardingPass.boarding, value: '19:00', align: 'right' },
+            ]}
             cabin={bi('專題 CASE STUDY', 'CASE STUDY')}
-            boardingTime="19:00"
             barcodeSeed="wbc2026-jpn-ven"
             route={{ from: 'VEN', to: 'JPN' }}
             stubBadge="26"

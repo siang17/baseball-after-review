@@ -357,11 +357,17 @@ export function MatchupSelector({ lang, onConfirm, className }: MatchupSelectorP
               `${TOURNAMENTS[config.awayTeamYear].name.zh} × ${TOURNAMENTS[config.homeTeamYear].name.zh}`,
               `${TOURNAMENTS[config.awayTeamYear].name.en} × ${TOURNAMENTS[config.homeTeamYear].name.en}`,
             )}
-            flightNo={`BAR ${config.eraMode.replace('vs', '-')}`}
-            gate={`${awayTeam.group}/${homeTeam.group}`}
-            seat={config.venue === 'NEUTRAL' ? 'NEUTRAL' : 'HOME ADV'}
+            fields={[
+              { label: UI.boardingPass.flight, value: `BAR ${config.eraMode.replace('vs', '-')}` },
+              { label: UI.boardingPass.gate, value: `${awayTeam.group}/${homeTeam.group}`, emphasis: true },
+              {
+                label: UI.boardingPass.seat,
+                value: config.venue === 'NEUTRAL' ? 'NEUTRAL' : 'HOME ADV',
+                emphasis: true,
+              },
+              { label: UI.boardingPass.boarding, value: `${config.simulationRuns.toLocaleString()} runs`, align: 'right' },
+            ]}
             cabin={bi('模擬對決 SIMULATION', 'SIMULATION')}
-            boardingTime={`${config.simulationRuns.toLocaleString()} runs`}
             barcodeSeed={`${config.eraMode}-${awayTeam.code}-${homeTeam.code}`}
             route={{ from: awayTeam.code, to: homeTeam.code }}
             stubBadge="VS"

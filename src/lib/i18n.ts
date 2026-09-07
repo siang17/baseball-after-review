@@ -86,6 +86,10 @@ export const UI = {
     cabinClass: bi('艙等 CLASS', 'CLASS'),
     boarding: bi('登機時間 BOARDING', 'BOARDING'),
     stub: bi('存根聯', 'PASSENGER COUPON'),
+    club: bi('母隊 CLUB', 'CLUB'),
+    country: bi('國家 COUNTRY', 'COUNTRY'),
+    position: bi('守備 POS', 'POS'),
+    playerStats: bi('球員數據', 'Player Stats'),
   },
   matchup: {
     title: bi('夢幻對決訂位', 'Matchup Booking'),
