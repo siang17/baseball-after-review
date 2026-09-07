@@ -90,6 +90,11 @@ export const UI = {
     country: bi('國家 COUNTRY', 'COUNTRY'),
     position: bi('守備 POS', 'POS'),
     playerStats: bi('球員數據', 'Player Stats'),
+    ticketTab: bi('登機證', 'Boarding Pass'),
+    batsThrows: bi('打／投', 'Bats/Throws'),
+    league: bi('聯盟', 'League'),
+    age: bi('年齡', 'Age'),
+    heightWeight: bi('身高體重', 'Ht/Wt'),
   },
   matchup: {
     title: bi('夢幻對決訂位', 'Matchup Booking'),

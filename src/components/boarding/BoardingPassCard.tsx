@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ChevronDown, ChevronUp, Plane, Shield, Ticket } from 'lucide-react';
+import { Plane, Shield, Ticket } from 'lucide-react';
 import { Barcode, QrGlyph } from '@/components/ui/Barcode';
 import { CABIN_BY_CLASS, getTeam } from '@/lib/constants';
 import { UI } from '@/lib/i18n';
@@ -83,7 +83,9 @@ export interface BoardingPassCardProps {
   title: Bilingual;
   /** 副標：所屬球團、賽事輪次等。 */
   subtitle?: Bilingual;
-  /** 卡面主要資訊欄位（2–4 個），不同卡片型態（球員／總教練／賽事）意義不同。 */
+  /** 標題與欄位之間的自訂內容，例如分頁切換列。 */
+  bodyHeader?: React.ReactNode;
+  /** 卡面主要資訊欄位（2–4 個），不同卡片型態（球員／總教練／賽事）意義不同；傳空陣列就不畫這一列。 */
   fields: BoardingPassField[];
   /** 艙等；傳 RosterClass 會自動查表，同時決定卡片色調（頂端色條／外框）。 */
   cabin: RosterClass | Bilingual;
@@ -91,18 +93,18 @@ export interface BoardingPassCardProps {
   showCabinBadge?: boolean;
   /** 條碼種子。 */
   barcodeSeed: string;
+  /** 是否顯示主聯下緣的條碼列。預設顯示。 */
+  showBarcode?: boolean;
   /** 出發地 → 目的地（比賽 Preview 用：客隊 → 主隊）。 */
   route?: { from: string; to: string };
   /** 右側票根上方的標記（例如背號）。 */
   stubBadge?: string;
   /** 票根中央的圖示；預設是 QR 風格方塊，可換成國旗等。 */
   stubGlyph?: React.ReactNode;
-  /** 主體下方的自訂內容：通常放行李吊牌 (BaggageTag)。 */
+  /** 主體下方的自訂內容：通常放行李吊牌 (BaggageTag) 或分頁內容。 */
   children?: React.ReactNode;
   /** 卡片強調色（球隊主色）。 */
   accentColor?: string;
-  selected?: boolean;
-  onClick?: () => void;
   className?: string;
 }
 
@@ -110,17 +112,17 @@ export function BoardingPassCard({
   lang,
   title,
   subtitle,
+  bodyHeader,
   fields,
   cabin,
   showCabinBadge = true,
   barcodeSeed,
+  showBarcode = true,
   route,
   stubBadge,
   stubGlyph,
   children,
   accentColor,
-  selected = false,
-  onClick,
   className,
 }: BoardingPassCardProps) {
   const cabinMeta =
@@ -130,20 +132,12 @@ export function BoardingPassCard({
     : (cabin as Bilingual);
   const tone = cabinMeta?.tone ?? 'economy';
 
-  const interactive = typeof onClick === 'function';
-  const Root: React.ElementType = interactive ? 'button' : 'div';
-
   return (
-    <Root
-      type={interactive ? 'button' : undefined}
-      onClick={onClick}
-      aria-pressed={interactive ? selected : undefined}
+    <div
       className={cn(
         'group relative w-full overflow-hidden rounded-[var(--radius-pass)] bg-paper-pure text-left',
         'ring-1 shadow-[0_1px_2px_rgba(11,37,69,0.06),0_8px_24px_-16px_rgba(11,37,69,0.35)]',
         TONE_RING[tone],
-        interactive && 'transition hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-14px_rgba(11,37,69,0.45)]',
-        selected && 'ring-2 ring-navy',
         className,
       )}
     >
@@ -202,20 +196,26 @@ export function BoardingPassCard({
             </div>
           )}
 
-          {/* 欄位 */}
-          <div className={cn('mt-3 grid gap-2', FIELD_GRID_COLS[fields.length] ?? 'grid-cols-4')}>
-            {fields.map((field, i) => (
-              <Field key={i} lang={lang} {...field} />
-            ))}
-          </div>
+          {bodyHeader && <div className="mt-3">{bodyHeader}</div>}
 
-          {/* 自訂區（行李吊牌 / 球員數據） */}
+          {/* 欄位 */}
+          {fields.length > 0 && (
+            <div className={cn('mt-3 grid gap-2', FIELD_GRID_COLS[fields.length] ?? 'grid-cols-4')}>
+              {fields.map((field, i) => (
+                <Field key={i} lang={lang} {...field} />
+              ))}
+            </div>
+          )}
+
+          {/* 自訂區（行李吊牌 / 分頁內容） */}
           {children && <div className="mt-3">{children}</div>}
 
           {/* 條碼 */}
-          <div className="mt-3 border-t border-dashed border-line pt-2">
-            <Barcode seed={barcodeSeed} className="h-8" showText />
-          </div>
+          {showBarcode && (
+            <div className="mt-3 border-t border-dashed border-line pt-2">
+              <Barcode seed={barcodeSeed} className="h-8" showText />
+            </div>
+          )}
         </div>
 
         {/* ---------- 撕票線 ---------- */}
@@ -239,7 +239,7 @@ export function BoardingPassCard({
           {stubGlyph ?? <QrGlyph seed={barcodeSeed} size={52} />}
         </div>
       </div>
-    </Root>
+    </div>
   );
 }
 
@@ -247,13 +247,88 @@ export function BoardingPassCard({
 /* 便利包裝：球員卡                                                    */
 /* ------------------------------------------------------------------ */
 
-/** 收合／展開時球員數據區塊上方的提示列。 */
-function PlayerStatsToggle({ open, lang }: { open: boolean; lang: Lang }) {
-  const Icon = open ? ChevronUp : ChevronDown;
+type PlayerCardTab = 'pass' | 'profile';
+
+/** 「登機證／球員數據」分頁切換列。球員數據頁之後會再彙整更完整的履歷內容，這裡先把分頁骨架搭好。 */
+function PlayerCardTabs({
+  active,
+  onChange,
+  lang,
+}: {
+  active: PlayerCardTab;
+  onChange: (tab: PlayerCardTab) => void;
+  lang: Lang;
+}) {
+  const tabs: Array<{ id: PlayerCardTab; label: Bilingual }> = [
+    { id: 'pass', label: UI.boardingPass.ticketTab },
+    { id: 'profile', label: UI.boardingPass.playerStats },
+  ];
   return (
-    <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.14em] text-ink-muted">
-      <Icon size={12} />
-      {UI.boardingPass.playerStats[lang]}
+    <div className="flex gap-1.5">
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          type="button"
+          onClick={() => onChange(tab.id)}
+          aria-pressed={active === tab.id}
+          className={cn(
+            'rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide transition',
+            active === tab.id ? 'bg-navy text-white' : 'bg-paper-sunken text-ink-muted hover:text-ink',
+          )}
+        >
+          {tab.label[lang]}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** 「球員數據」分頁內容：打投／聯盟／年齡／身高體重等履歷欄位，缺值一律顯示「—」；下方接統計標籤。 */
+function PlayerProfileTab({
+  player,
+  lang,
+  children,
+}: {
+  player: Player;
+  lang: Lang;
+  children?: React.ReactNode;
+}) {
+  const bioRows: Array<{ label: Bilingual; value: string }> = [
+    { label: UI.boardingPass.batsThrows, value: `${player.bats}/${player.throws}` },
+    { label: UI.boardingPass.league, value: player.leagueOrigin },
+    { label: UI.boardingPass.age, value: player.age !== null ? String(player.age) : '—' },
+    {
+      label: UI.boardingPass.heightWeight,
+      value:
+        player.heightCm !== null && player.weightKg !== null
+          ? `${player.heightCm}cm / ${player.weightKg}kg`
+          : '—',
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+        {bioRows.map((row, i) => (
+          <div
+            key={i}
+            className="flex items-baseline justify-between gap-2 border-b border-dashed border-line pb-1"
+          >
+            <dt className="text-[9px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+              {row.label[lang]}
+            </dt>
+            <dd className="font-[family-name:var(--font-mono-ticket)] text-xs font-bold text-ink">
+              {row.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {player.scoutingNote && (
+        <p className="text-xs leading-relaxed text-ink-soft">{player.scoutingNote[lang]}</p>
+      )}
+
+      {children}
     </div>
   );
 }
@@ -271,7 +346,7 @@ export function PlayerBoardingPass({
   className?: string;
   children?: React.ReactNode;
 }) {
-  const [statsOpen, setStatsOpen] = React.useState(false);
+  const [tab, setTab] = React.useState<PlayerCardTab>('pass');
   const pass = player.boardingPass;
   const team = getTeam(player.teamCode, player.era);
   /** 投手用 SP/RP/CL 這種角色分工，比單純顯示「P」更有資訊量；打者則顯示實際守位。 */
@@ -281,15 +356,21 @@ export function PlayerBoardingPass({
     <BoardingPassCard
       lang={lang}
       title={player.name}
-      fields={[
-        { label: UI.boardingPass.club, value: player.club ? player.club[lang] : '—' },
-        {
-          label: UI.boardingPass.country,
-          value: `${team?.flagEmoji ?? ''} ${player.teamCode}`.trim(),
-          emphasis: true,
-        },
-        { label: UI.boardingPass.position, value: positionLabel, emphasis: true, align: 'right' },
-      ]}
+      bodyHeader={<PlayerCardTabs active={tab} onChange={setTab} lang={lang} />}
+      fields={
+        tab === 'pass'
+          ? [
+              { label: UI.boardingPass.club, value: player.club ? player.club[lang] : '—' },
+              {
+                label: UI.boardingPass.country,
+                value: `${team?.flagEmoji ?? ''} ${player.teamCode}`.trim(),
+                emphasis: true,
+              },
+              { label: UI.boardingPass.position, value: positionLabel, emphasis: true, align: 'right' },
+            ]
+          : []
+      }
+      showBarcode={tab === 'pass'}
       cabin={player.rosterClass}
       showCabinBadge={false}
       barcodeSeed={pass.barcodeSeed}
@@ -300,15 +381,12 @@ export function PlayerBoardingPass({
         </span>
       }
       accentColor={accentColor}
-      selected={statsOpen}
-      onClick={() => setStatsOpen((v) => !v)}
       className={className}
     >
-      {children && (
-        <div>
-          <PlayerStatsToggle open={statsOpen} lang={lang} />
-          {statsOpen && <div className="mt-1.5">{children}</div>}
-        </div>
+      {tab === 'profile' && (
+        <PlayerProfileTab player={player} lang={lang}>
+          {children}
+        </PlayerProfileTab>
       )}
     </BoardingPassCard>
   );
