@@ -45,9 +45,11 @@ Tailwind v4 不使用 `tailwind.config.js`；所有設計代幣定義在 `src/ap
 - 舊的無前綴網址（`/replay` 等）由 `next.config.ts` 的 `redirects()` 以 307 導到 `/zh/...`。
 - 切換語言是一次真正的頁面導覽，元件會重新掛載，所以各頁的流程狀態都放在 `store/`
   的 zustand store（module singleton，能跨導覽存活）：`useReplayStore` 存復盤流程、
-  `useRostersStore` 存名單瀏覽位置、`useMatchupStore` 存選隊流程。切換語言會停在原地。
-  唯一的例外是網址的 query（例如 `?game=...`）不會被帶到另一語言，但因為流程狀態已在
-  store 裡，畫面不受影響。
+  `useRostersStore` 存名單瀏覽位置、`useMatchupStore` 存選隊流程。切換語言會停在原地，
+  網址上的 query string（例如 `?game=...&autoDecision=1`）也會被語言切換連結原樣帶過去。
+  `SiteHeader` 裡負責這個的 `LangToggleLink` 用了 `useSearchParams()`，因此包了一層
+  `Suspense`——避免讓整個（靜態預先產生的）layout 被迫改成動態渲染，只有這一顆連結
+  在客戶端才知道目前的 query。
 
 
 ---
