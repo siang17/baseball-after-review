@@ -3,6 +3,8 @@
 import { create } from 'zustand';
 import type {
   DecisionPoint,
+  Era,
+  Game,
   ManagerModeConfig,
   MatchState,
   OverweightBaggageAlert,
@@ -45,7 +47,56 @@ const defaultPitchCom: PitchComConfig = {
   malfunctionRate: 0,
 };
 
+/** 復盤頁的四個步驟：選比賽 → 選打線模式 → 編打線 → 逐球復盤。 */
+export type ReplayFlowStep = 'SELECT_GAME' | 'CHOOSE_MODE' | 'EDIT_LINEUP' | 'REVIEW';
+
+export interface SelectGamePayload {
+  era: Era;
+  game: Game;
+  homeLineup: string[];
+  awayLineup: string[];
+  homePitcher: string;
+  awayPitcher: string;
+  /** 由 ?game=... 深連結進來時直接跳到逐球復盤。 */
+  skipToReview?: boolean;
+}
+
 interface ReplayState {
+  /* ---------------------------------------------------------------- */
+  /* 復盤流程                                                          */
+  /*                                                                   */
+  /* 這些原本是 ReplayPage 的 useState。語言是網址的一部分，            */
+  /* `/zh/replay` → `/en/replay` 是一次真正的導覽，元件會重新掛載；     */
+  /* 放進 store（module singleton）之後，切換語言不會把使用者          */
+  /* 打回選比賽的畫面。                                                */
+  /* ---------------------------------------------------------------- */
+  flowStep: ReplayFlowStep;
+  /** 選比賽畫面上正在看哪一屆賽程的分頁（跟 `era` 不同，`era` 是已選定比賽的年份）。 */
+  scheduleEra: Era;
+  era: Era;
+  game: Game | null;
+  homeLineup: string[];
+  awayLineup: string[];
+  homePitcher: string;
+  awayPitcher: string;
+  /** 每按一次「重新產生」就 +1，用來換掉模擬的亂數種子。 */
+  seedNonce: number;
+
+  setFlowStep: (step: ReplayFlowStep) => void;
+  setScheduleEra: (era: Era) => void;
+  /**
+   * 選定一場比賽。打線／先發投手由呼叫端從名單算好再傳進來 —— store 刻意不 import
+   * `@/data/rosters`，否則任何 import 這個 store 的 client island（例如專題頁的 CTA）
+   * 都會把 12 隊名單整包拉進自己的 bundle。
+   */
+  selectGame: (payload: SelectGamePayload) => void;
+  setHomeLineup: (ids: string[]) => void;
+  setAwayLineup: (ids: string[]) => void;
+  setHomePitcher: (id: string) => void;
+  setAwayPitcher: (id: string) => void;
+  /** 同一組設定換一組模擬結果。 */
+  regenerate: () => void;
+
   /** 目前播放到第幾球（index of GameReview.pitches）。 */
   cursor: number;
   isPlaying: boolean;
@@ -97,6 +148,32 @@ interface ReplayState {
 }
 
 export const useReplayStore = create<ReplayState>()((set, get) => ({
+  flowStep: 'SELECT_GAME',
+  scheduleEra: 2026,
+  era: 2026,
+  game: null,
+  homeLineup: [],
+  awayLineup: [],
+  homePitcher: '',
+  awayPitcher: '',
+  seedNonce: 0,
+
+  setFlowStep: (flowStep) => set({ flowStep }),
+  setScheduleEra: (scheduleEra) => set({ scheduleEra }),
+
+  selectGame: ({ skipToReview, ...selection }) =>
+    set({
+      ...selection,
+      flowStep: skipToReview ? 'REVIEW' : 'CHOOSE_MODE',
+      cursor: 0,
+    }),
+
+  setHomeLineup: (homeLineup) => set({ homeLineup }),
+  setAwayLineup: (awayLineup) => set({ awayLineup }),
+  setHomePitcher: (homePitcher) => set({ homePitcher }),
+  setAwayPitcher: (awayPitcher) => set({ awayPitcher }),
+  regenerate: () => set({ seedNonce: get().seedNonce + 1, cursor: 0 }),
+
   cursor: 0,
   isPlaying: false,
   playbackSpeed: 1,

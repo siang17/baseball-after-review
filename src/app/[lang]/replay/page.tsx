@@ -94,7 +94,9 @@ function matchStateFromPitch(pitch: GameReviewResult['review']['pitches'][number
 
 function SelectGameStep({ onSelect }: { onSelect: (era: Era, game: Game) => void }) {
   const lang = useLang();
-  const [era, setEra] = React.useState<Era>(2026);
+  // 分頁選擇也放在 store，切換語言後仍會停在原本那一屆賽程。
+  const era = useReplayStore((s) => s.scheduleEra);
+  const setEra = useReplayStore((s) => s.setScheduleEra);
   const games = era === 2024 ? SCHEDULE_2024 : SCHEDULE_2026;
 
   return (
@@ -431,46 +433,62 @@ function ReviewStep({
 /* 主頁面                                                               */
 /* ------------------------------------------------------------------ */
 
-type FlowStep = 'SELECT_GAME' | 'CHOOSE_MODE' | 'EDIT_LINEUP' | 'REVIEW';
-
 export default function ReplayPage() {
   const lang = useLang();
   const setCursor = useReplayStore((s) => s.setCursor);
   const openDecision = useReplayStore((s) => s.openDecision);
 
-  const [flowStep, setFlowStep] = React.useState<FlowStep>('SELECT_GAME');
-  const [era, setEra] = React.useState<Era>(2026);
-  const [game, setGame] = React.useState<Game | null>(null);
-  const [homeLineup, setHomeLineup] = React.useState<string[]>([]);
-  const [awayLineup, setAwayLineup] = React.useState<string[]>([]);
-  const [homePitcher, setHomePitcher] = React.useState<string>('');
-  const [awayPitcher, setAwayPitcher] = React.useState<string>('');
-  const [seedNonce, setSeedNonce] = React.useState(0);
+  // 流程狀態住在 store，而不是這個元件的 useState：
+  // 切換語言是一次真正的導覽，元件會重新掛載，但 store 能跨導覽存活，
+  // 使用者不會被打回選比賽的畫面。
+  const flowStep = useReplayStore((s) => s.flowStep);
+  const era = useReplayStore((s) => s.era);
+  const game = useReplayStore((s) => s.game);
+  const homeLineup = useReplayStore((s) => s.homeLineup);
+  const awayLineup = useReplayStore((s) => s.awayLineup);
+  const homePitcher = useReplayStore((s) => s.homePitcher);
+  const awayPitcher = useReplayStore((s) => s.awayPitcher);
+  const seedNonce = useReplayStore((s) => s.seedNonce);
+  const setFlowStep = useReplayStore((s) => s.setFlowStep);
+  const selectGame = useReplayStore((s) => s.selectGame);
+  const setHomeLineup = useReplayStore((s) => s.setHomeLineup);
+  const setAwayLineup = useReplayStore((s) => s.setAwayLineup);
+  const setHomePitcher = useReplayStore((s) => s.setHomePitcher);
+  const setAwayPitcher = useReplayStore((s) => s.setAwayPitcher);
+  const regenerate = useReplayStore((s) => s.regenerate);
+
   const [autoDecisionPending, setAutoDecisionPending] = React.useState(false);
 
   const homeRoster = game ? rosterFor(era, game.homeTeamCode) : null;
   const awayRoster = game ? rosterFor(era, game.awayTeamCode) : null;
 
-  const handleSelectGame = (selectedEra: Era, selectedGame: Game, opts?: { skipToReview?: boolean }) => {
-    const home = rosterFor(selectedEra, selectedGame.homeTeamCode);
-    const away = rosterFor(selectedEra, selectedGame.awayTeamCode);
-    if (!home || !away) return;
-    setEra(selectedEra);
-    setGame(selectedGame);
-    setHomeLineup(home.lineup.map((p) => p.id));
-    setAwayLineup(away.lineup.map((p) => p.id));
-    setHomePitcher(home.rotation[0]?.id ?? home.bullpen[0]?.id ?? '');
-    setAwayPitcher(away.rotation[0]?.id ?? away.bullpen[0]?.id ?? '');
-    setFlowStep(opts?.skipToReview ? 'REVIEW' : 'CHOOSE_MODE');
-    setCursor(0);
-  };
+  /** 從名單算出雙方的真實先發打線與先發投手，再交給 store 記住。 */
+  const handleSelectGame = React.useCallback(
+    (selectedEra: Era, selectedGame: Game, opts?: { skipToReview?: boolean }) => {
+      const home = rosterFor(selectedEra, selectedGame.homeTeamCode);
+      const away = rosterFor(selectedEra, selectedGame.awayTeamCode);
+      if (!home || !away) return;
+      selectGame({
+        era: selectedEra,
+        game: selectedGame,
+        homeLineup: home.lineup.map((p) => p.id),
+        awayLineup: away.lineup.map((p) => p.id),
+        homePitcher: home.rotation[0]?.id ?? home.bullpen[0]?.id ?? '',
+        awayPitcher: away.rotation[0]?.id ?? away.bullpen[0]?.id ?? '',
+        skipToReview: opts?.skipToReview,
+      });
+    },
+    [selectGame],
+  );
 
   // 從 /case-study 等外部連結帶 ?game=<id>&autoDecision=1 進來時，
   // 略過選比賽/編輯打線，直接產生復盤並跳到第一個調度決策點。
+  // 若 store 裡已經就是這場比賽（例如剛切換完語言重新掛載），就不重設，
+  // 否則游標與已做的調度都會被清掉。
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const gameId = params.get('game');
-    if (!gameId) return;
+    if (!gameId || game?.id === gameId) return;
     const found =
       SCHEDULE_2024.find((g) => g.id === gameId) ?? SCHEDULE_2026.find((g) => g.id === gameId);
     if (!found) return;
@@ -602,10 +620,7 @@ export default function ReplayPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSeedNonce((n) => n + 1);
-                setCursor(0);
-              }}
+              onClick={regenerate}
               className="flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-navy"
             >
               <RefreshCcw size={12} />

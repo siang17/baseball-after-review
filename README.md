@@ -43,8 +43,11 @@ Tailwind v4 不使用 `tailwind.config.js`；所有設計代幣定義在 `src/ap
   因此語言在伺服器輸出的 HTML 裡就是正確的，不會有「先中文再閃成英文」的情況。
 - 導覽列的中英切換就是導到同一條路徑的另一語言版本（`/zh/replay` ↔ `/en/replay`）。
 - 舊的無前綴網址（`/replay` 等）由 `next.config.ts` 的 `redirects()` 以 307 導到 `/zh/...`。
-- **注意**：切換語言是一次真正的頁面導覽，`/replay`、`/rosters`、`/matchup` 這類
-  存在元件內的流程狀態會被重置。若要跨語言保留，需把流程狀態移到 `store/` 的 zustand store。
+- 切換語言是一次真正的頁面導覽，元件會重新掛載，所以各頁的流程狀態都放在 `store/`
+  的 zustand store（module singleton，能跨導覽存活）：`useReplayStore` 存復盤流程、
+  `useRostersStore` 存名單瀏覽位置、`useMatchupStore` 存選隊流程。切換語言會停在原地。
+  唯一的例外是網址的 query（例如 `?game=...`）不會被帶到另一語言，但因為流程狀態已在
+  store 裡，畫面不受影響。
 
 
 ---
@@ -105,7 +108,8 @@ baseball-after-review/
     │
     ├── store/
     │   ├── useMatchupStore.ts    # 兩階段選隊流程狀態
-    │   └── useReplayStore.ts     # 復盤游標、總教練模式、HUD 設定、警報
+    │   ├── useRostersStore.ts    # 名單頁瀏覽位置（年代 → 隊伍）
+    │   └── useReplayStore.ts     # 復盤流程、游標、總教練模式、HUD 設定、警報
     │
     ├── types/
     │   └── baseball.ts           # 全站資料型別（單一事實來源）

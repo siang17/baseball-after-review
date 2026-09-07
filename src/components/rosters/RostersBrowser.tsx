@@ -9,6 +9,7 @@ import { TEAMS_BY_ERA, TOURNAMENTS, getTeam } from '@/lib/constants';
 import { UI, bi } from '@/lib/i18n';
 import { playerById, rosterFor } from '@/data/rosters';
 import { useLang } from '@/components/layout/LangProvider';
+import { useRostersStore } from '@/store/useRostersStore';
 import type { Era, Player, Roster, TeamCode } from '@/types/baseball';
 
 /* ------------------------------------------------------------------ */
@@ -253,12 +254,16 @@ function RosterDetail({ era, teamCode, onBack }: { era: Era; teamCode: TeamCode;
  * 所以這塊維持 Client Component；頁面的標題與說明已經拆到 Server Component。
  */
 export function RostersBrowser() {
-  const [era, setEra] = React.useState<Era | null>(null);
-  const [teamCode, setTeamCode] = React.useState<TeamCode | null>(null);
+  const era = useRostersStore((s) => s.era);
+  const teamCode = useRostersStore((s) => s.teamCode);
+  const selectEra = useRostersStore((s) => s.selectEra);
+  const selectTeam = useRostersStore((s) => s.selectTeam);
+  const clearEra = useRostersStore((s) => s.clearEra);
+  const clearTeam = useRostersStore((s) => s.clearTeam);
 
-  if (era === null) return <EraPicker onSelect={setEra} />;
+  if (era === null) return <EraPicker onSelect={selectEra} />;
   if (teamCode === null) {
-    return <TeamPicker era={era} onSelect={setTeamCode} onBack={() => setEra(null)} />;
+    return <TeamPicker era={era} onSelect={selectTeam} onBack={clearEra} />;
   }
-  return <RosterDetail era={era} teamCode={teamCode} onBack={() => setTeamCode(null)} />;
+  return <RosterDetail era={era} teamCode={teamCode} onBack={clearTeam} />;
 }
