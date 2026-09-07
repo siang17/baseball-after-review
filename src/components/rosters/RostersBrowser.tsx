@@ -97,6 +97,14 @@ function PlayerGrid({ players }: { players: Player[] }) {
       {players.map((player) => (
         <PlayerBoardingPass key={player.id} player={player} lang={lang}>
           <div className="flex flex-wrap gap-2">
+            {/* OPS/WHIP 是打擊／投球資料裡唯二一定有值的欄位（schema 不可為 null），
+                所以放最前面：真實球季資料只查得到基本打擊率三圍時，這裡才不會整排空白。 */}
+            {player.batting && (
+              <BaggageTag lang={lang} label={bi('OPS', 'OPS')} value={player.batting.ops.toFixed(3)} />
+            )}
+            {player.batting?.avg != null && (
+              <BaggageTag lang={lang} label={bi('打擊率', 'AVG')} value={player.batting.avg.toFixed(3)} />
+            )}
             {player.batting?.wrcPlus != null && (
               <BaggageTag lang={lang} label={bi('wRC+', 'wRC+')} value={player.batting.wrcPlus} />
             )}
@@ -107,6 +115,9 @@ function PlayerGrid({ players }: { players: Player[] }) {
                 value={player.fielding.uzr150.toFixed(1)}
                 tone={player.fielding.uzr150 >= 0 ? 'good' : 'danger'}
               />
+            )}
+            {player.pitching && (
+              <BaggageTag lang={lang} label={bi('WHIP', 'WHIP')} value={player.pitching.whip.toFixed(2)} />
             )}
             {player.pitching?.era != null && (
               <BaggageTag lang={lang} label={bi('防禦率', 'ERA')} value={player.pitching.era.toFixed(2)} />
