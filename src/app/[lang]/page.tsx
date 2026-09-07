@@ -2,16 +2,8 @@ import Link from 'next/link';
 import { ArrowRight, Plane } from 'lucide-react';
 import { BoardingPassCard } from '@/components/boarding/BoardingPassCard';
 import { BaggageTag } from '@/components/ui/BaggageTag';
-import { FlightStatusBoard, type BoardRow } from '@/components/ui/FlightStatusBoard';
 import { UI, bi, localePath } from '@/lib/i18n';
 import type { Lang } from '@/types/baseball';
-
-const SCHEDULE: BoardRow[] = [
-  { id: 'g1', flight: 'WBC 026', from: 'VEN', to: 'JPN', gate: 'C', time: '19:00', status: bi('已抵達', 'ARRIVED'), tone: 'arrived' },
-  { id: 'g2', flight: 'WBC 031', from: 'USA', to: 'DOM', gate: 'D', time: '12:00', status: bi('登機中', 'BOARDING'), tone: 'boarding' },
-  { id: 'g3', flight: 'WBC 034', from: 'KOR', to: 'ITA', gate: 'B', time: '18:30', status: bi('準時', 'ON TIME'), tone: 'ontime' },
-  { id: 'g4', flight: 'P12 118', from: 'JPN', to: 'TPE', gate: 'B', time: '18:00', status: bi('延誤 · 復盤中', 'DELAYED'), tone: 'delayed' },
-];
 
 export default async function HomePage({ params }: { params: Promise<{ lang: Lang }> }) {
   const { lang } = await params;
@@ -48,13 +40,6 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Lan
           </Link>
         </div>
       </section>
-
-      {/* 航班動態看板 */}
-      <FlightStatusBoard
-        rows={SCHEDULE}
-        lang={lang}
-        title={bi('賽程動態看板', 'Game Status Board')}
-      />
 
       {/* 登機證示範 */}
       <section>
