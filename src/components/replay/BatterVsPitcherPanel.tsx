@@ -1,5 +1,3 @@
-'use client';
-
 import { FileWarning } from 'lucide-react';
 import { syntheticBvp } from '@/lib/simulation/syntheticBvp';
 import { bi } from '@/lib/i18n';

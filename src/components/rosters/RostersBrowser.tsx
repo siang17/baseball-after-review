@@ -8,7 +8,7 @@ import { BaggageTag } from '@/components/ui/BaggageTag';
 import { TEAMS_BY_ERA, TOURNAMENTS, getTeam } from '@/lib/constants';
 import { UI, bi } from '@/lib/i18n';
 import { playerById, rosterFor } from '@/data/rosters';
-import { useAppStore } from '@/store/useAppStore';
+import { useLang } from '@/components/layout/LangProvider';
 import type { Era, Player, Roster, TeamCode } from '@/types/baseball';
 
 /* ------------------------------------------------------------------ */
@@ -18,7 +18,7 @@ import type { Era, Player, Roster, TeamCode } from '@/types/baseball';
 const ERAS: Era[] = [2024, 2026];
 
 function EraPicker({ onSelect }: { onSelect: (era: Era) => void }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {ERAS.map((era) => (
@@ -46,7 +46,7 @@ function EraPicker({ onSelect }: { onSelect: (era: Era) => void }) {
 /* ------------------------------------------------------------------ */
 
 function TeamPicker({ era, onSelect, onBack }: { era: Era; onSelect: (code: TeamCode) => void; onBack: () => void }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const teams = TEAMS_BY_ERA[era];
 
   return (
@@ -89,7 +89,7 @@ function TeamPicker({ era, onSelect, onBack }: { era: Era; onSelect: (code: Team
 /* ------------------------------------------------------------------ */
 
 function PlayerGrid({ players }: { players: Player[] }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   if (players.length === 0) return null;
   return (
     <div className="grid gap-3 lg:grid-cols-2">
@@ -136,7 +136,7 @@ function Section({
 }
 
 function CoachingStaffCard({ roster }: { roster: Roster }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   return (
     <div className="space-y-3">
       <ManagerBoardingPass
@@ -161,7 +161,7 @@ function CoachingStaffCard({ roster }: { roster: Roster }) {
 }
 
 function SnubsSection({ roster }: { roster: Roster }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   if (roster.snubs.length === 0) {
     return (
       <div className="flex h-24 items-center justify-center rounded-[var(--radius-pass)] border border-dashed border-line-strong text-sm text-ink-muted">
@@ -183,7 +183,7 @@ function SnubsSection({ roster }: { roster: Roster }) {
 /* ------------------------------------------------------------------ */
 
 function RosterDetail({ era, teamCode, onBack }: { era: Era; teamCode: TeamCode; onBack: () => void }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const roster = rosterFor(era, teamCode);
   const team = getTeam(teamCode, era);
 
@@ -245,34 +245,20 @@ function RosterDetail({ era, teamCode, onBack }: { era: Era; teamCode: TeamCode;
 }
 
 /* ------------------------------------------------------------------ */
-/* 主頁面                                                              */
+/* 瀏覽流程（client island）                                            */
 /* ------------------------------------------------------------------ */
 
-export default function RostersPage() {
-  const lang = useAppStore((s) => s.lang);
+/**
+ * 年代 → 隊伍 → 名單的三步瀏覽流程。選取狀態是純粹的 UI 狀態，
+ * 所以這塊維持 Client Component；頁面的標題與說明已經拆到 Server Component。
+ */
+export function RostersBrowser() {
   const [era, setEra] = React.useState<Era | null>(null);
   const [teamCode, setTeamCode] = React.useState<TeamCode | null>(null);
 
-  return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="text-xl font-black text-navy">
-          {lang === 'zh' ? '旅客名單 · 球員登機證' : 'Rosters · Player Boarding Passes'}
-        </h1>
-        <p className="mt-1 text-xs text-ink-muted">
-          {lang === 'zh'
-            ? '⚠️ 示範資料：姓名／守位／教練職稱為真實名單，統計數字與棒次、輪值分工為示範用虛構值。'
-            : '⚠️ Placeholder data: names/positions/coaching titles are the real rosters; stats, batting order and rotation roles are illustrative fictional values.'}
-        </p>
-      </header>
-
-      {era === null ? (
-        <EraPicker onSelect={setEra} />
-      ) : teamCode === null ? (
-        <TeamPicker era={era} onSelect={setTeamCode} onBack={() => setEra(null)} />
-      ) : (
-        <RosterDetail era={era} teamCode={teamCode} onBack={() => setTeamCode(null)} />
-      )}
-    </div>
-  );
+  if (era === null) return <EraPicker onSelect={setEra} />;
+  if (teamCode === null) {
+    return <TeamPicker era={era} onSelect={setTeamCode} onBack={() => setEra(null)} />;
+  }
+  return <RosterDetail era={era} teamCode={teamCode} onBack={() => setTeamCode(null)} />;
 }

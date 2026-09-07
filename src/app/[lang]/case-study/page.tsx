@@ -1,7 +1,4 @@
-'use client';
-
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import {
   ArrowRight,
   BookOpen,
@@ -11,6 +8,7 @@ import {
   Users,
 } from 'lucide-react';
 import { BullpenBridgePanel } from '@/components/analysis/BullpenBridgePanel';
+import { CaseStudyActions } from '@/components/case-study/CaseStudyActions';
 import { CrucialPlayAlert, CrucialPlayList } from '@/components/analysis/CrucialPlayAlert';
 import { DefenseArgumentPanel } from '@/components/analysis/DefenseArgumentPanel';
 import { TempoImpactPanel } from '@/components/analysis/TempoImpactPanel';
@@ -31,9 +29,6 @@ import { createPitchLimitConfig } from '@/lib/constants';
 import { bi } from '@/lib/i18n';
 import { deltaForSide } from '@/lib/sabermetrics';
 import { cn, formatSigned } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
-import { useMatchupStore } from '@/store/useMatchupStore';
-import { useReplayStore } from '@/store/useReplayStore';
 import type { Bilingual, Lang, Player } from '@/types/baseball';
 
 /* ------------------------------------------------------------------ */
@@ -104,54 +99,24 @@ function SectionNav({ lang }: { lang: Lang }) {
 /* 頁面                                                                */
 /* ------------------------------------------------------------------ */
 
-export default function CaseStudyPage() {
-  const router = useRouter();
-  const lang = useAppStore((s) => s.lang);
-
-  const setManagerEnabled = useReplayStore((s) => s.setManagerEnabled);
-  const setManagerSide = useReplayStore((s) => s.setManagerSide);
-  const setEraMode = useMatchupStore((s) => s.setEraMode);
-  const setTeam = useMatchupStore((s) => s.setTeam);
-  const setStep = useMatchupStore((s) => s.setStep);
+export default async function CaseStudyPage({ params }: { params: Promise<{ lang: Lang }> }) {
+  const { lang } = await params;
 
   const review = DEMO_GAME_REVIEW;
-  const pitchLimit = React.useMemo(() => createPitchLimitConfig(65, true), []);
   const decisionPoint = review.decisionPoints[0];
+
+  // 這些都是建置期就固定的靜態資料，在 Server Component 裡只會算一次，不需要 useMemo。
+  const pitchLimit = createPitchLimitConfig(65, true);
 
   // 遺珠與守備論證改吃 Phase 1 建好的 2026 日本隊真實名單（其餘敘事段落維持原本手寫的示範情境）。
   const jpnRoster = rosterFor(2026, 'JPN');
   const realSnubs = jpnRoster?.snubs ?? [];
-  const realDefenders = React.useMemo(
-    () => JPN_DEFENSIVE_CORE_IDS.map((id) => playerById(id)).filter((p): p is Player => p !== null),
-    [],
+  const realDefenders = JPN_DEFENSIVE_CORE_IDS.map((id) => playerById(id)).filter(
+    (p): p is Player => p !== null,
   );
-  const topPlay = React.useMemo(
-    () =>
-      [...review.crucialPlays].sort(
-        (a, b) => Math.abs(b.deltaWinProbability) - Math.abs(a.deltaWinProbability),
-      )[0],
-    [review.crucialPlays],
-  );
-
-  /**
-   * 以客隊（VEN）總教練身分跳到 /replay，針對 2026 JPN vs VEN 真實名單即時
-   * 產生一場逐球復盤（取代舊版直接塞入本頁這份手寫 demo 決策點的做法）；
-   * /replay 會在載入時自動選好這場比賽、產生復盤，並跳到第一個調度決策點。
-   */
-  const startManagerMode = () => {
-    setManagerEnabled(true);
-    setManagerSide('AWAY');
-    router.push('/replay?game=2026-wbc-03-14-jpn-ven&autoDecision=1');
-  };
-
-  /** 預先設定 2024 中華隊 vs. 2026 日本隊的跨年代對決。 */
-  const startCrossEraMatchup = () => {
-    setEraMode('2024vs2026');
-    setTeam('away', 'TPE');
-    setTeam('home', 'JPN');
-    setStep('CONFIRM');
-    router.push('/matchup');
-  };
+  const topPlay = [...review.crucialPlays].sort(
+    (a, b) => Math.abs(b.deltaWinProbability) - Math.abs(a.deltaWinProbability),
+  )[0];
 
   return (
     <div>
@@ -420,55 +385,7 @@ export default function CaseStudyPage() {
             )}
           />
 
-          <div className="grid gap-3 md:grid-cols-2">
-            <button
-              type="button"
-              onClick={startManagerMode}
-              className={cn(
-                'group rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4 text-left transition',
-                'hover:-translate-y-0.5 hover:border-plum hover:shadow-[0_10px_28px_-18px_rgba(11,37,69,0.5)]',
-              )}
-            >
-              <Gauge size={18} className="text-plum" />
-              <h3 className="mt-2 text-base font-bold text-ink">
-                {lang === 'zh' ? '以客隊總教練身分重做決定' : 'Retake the call as Venezuela'}
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                {lang === 'zh'
-                  ? '即時產生一場真實先發打線的逐球復盤，跳到全場最高槓桿的調度決策點，送出後對比歷史選擇與 AI 最佳解。'
-                  : 'Generates a fresh pitch-by-pitch review from the real starting lineups, jumps to the highest-leverage decision point, then compares your call against the historical and optimal ones.'}
-              </p>
-              <span className="mt-3 flex items-center gap-1 text-xs font-bold text-plum">
-                {lang === 'zh' ? '開啟總教練模式' : 'Open manager mode'}
-                <ArrowRight size={13} className="transition group-hover:translate-x-0.5" />
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={startCrossEraMatchup}
-              className={cn(
-                'group rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4 text-left transition',
-                'hover:-translate-y-0.5 hover:border-navy hover:shadow-[0_10px_28px_-18px_rgba(11,37,69,0.5)]',
-              )}
-            >
-              <Sparkles size={18} className="text-navy" />
-              <h3 className="mt-2 text-base font-bold text-ink">
-                {lang === 'zh'
-                  ? '跨年代對決：2024 中華隊 vs. 2026 日本隊'
-                  : 'Cross-era: 2024 Chinese Taipei vs. 2026 Japan'}
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-ink-muted">
-                {lang === 'zh'
-                  ? '以 12 強冠軍中華隊對上這支日本隊，套用年代校正與 65 球規則後推演勝率。'
-                  : 'Puts the Premier12 champions against this Japan roster with era adjustment and the 65-pitch rule applied.'}
-              </p>
-              <span className="mt-3 flex items-center gap-1 text-xs font-bold text-navy">
-                <PlaneTakeoff size={13} />
-                {lang === 'zh' ? '前往訂位確認頁' : 'Go to the booking confirmation'}
-              </span>
-            </button>
-          </div>
+          <CaseStudyActions lang={lang} />
 
           <p className="mt-3 rounded-lg bg-paper-sunken px-3 py-2 text-xs leading-relaxed text-ink-soft">
             {lang === 'zh'

@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { Info, ShieldCheck } from 'lucide-react';
 import { BaggageTag } from '@/components/ui/BaggageTag';

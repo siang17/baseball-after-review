@@ -19,7 +19,7 @@ import { TOURNAMENTS, getTeam } from '@/lib/constants';
 import { UI } from '@/lib/i18n';
 import { generateGameReviewDetailed, type GameReviewResult } from '@/lib/simulation/gameReviewGenerator';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useLang } from '@/components/layout/LangProvider';
 import { useReplayStore } from '@/store/useReplayStore';
 import type {
   Era,
@@ -93,7 +93,7 @@ function matchStateFromPitch(pitch: GameReviewResult['review']['pitches'][number
 /* ------------------------------------------------------------------ */
 
 function SelectGameStep({ onSelect }: { onSelect: (era: Era, game: Game) => void }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const [era, setEra] = React.useState<Era>(2026);
   const games = era === 2024 ? SCHEDULE_2024 : SCHEDULE_2026;
 
@@ -254,7 +254,7 @@ function ReviewStep({
   homeCode: string;
   awayCode: string;
 }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const cursor = useReplayStore((s) => s.cursor);
   const setCursor = useReplayStore((s) => s.setCursor);
   const managerMode = useReplayStore((s) => s.managerMode);
@@ -434,7 +434,7 @@ function ReviewStep({
 type FlowStep = 'SELECT_GAME' | 'CHOOSE_MODE' | 'EDIT_LINEUP' | 'REVIEW';
 
 export default function ReplayPage() {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const setCursor = useReplayStore((s) => s.setCursor);
   const openDecision = useReplayStore((s) => s.openDecision);
 

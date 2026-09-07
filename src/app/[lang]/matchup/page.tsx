@@ -2,12 +2,12 @@
 
 import { MatchupSelector } from '@/components/matchup/MatchupSelector';
 import { SimulationResult } from '@/components/matchup/SimulationResult';
-import { useAppStore } from '@/store/useAppStore';
+import { useLang } from '@/components/layout/LangProvider';
 import { useMatchupStore } from '@/store/useMatchupStore';
 import type { MatchupModeConfig } from '@/types/baseball';
 
 export default function MatchupPage() {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const setSimulating = useMatchupStore((s) => s.setSimulating);
   const result = useMatchupStore((s) => s.result);
   const setResult = useMatchupStore((s) => s.setResult);
@@ -28,5 +28,5 @@ export default function MatchupPage() {
     }
   };
 
-  return <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6"><MatchupSelector lang={lang} onConfirm={handleConfirm} />{result && <SimulationResult result={result} lang={lang} onReset={reset} />}</main>;
+  return <div className="py-2"><MatchupSelector lang={lang} onConfirm={handleConfirm} />{result && <SimulationResult result={result} lang={lang} onReset={reset} />}</div>;
 }

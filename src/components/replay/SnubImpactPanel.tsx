@@ -1,5 +1,3 @@
-'use client';
-
 import { ArrowLeftRight } from 'lucide-react';
 import { buildBatterProfile, buildPitcherProfile } from '@/lib/simulation/ratings';
 import { bi } from '@/lib/i18n';

@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { Plane, Shield, Star, Ticket } from 'lucide-react';
 import { Barcode, QrGlyph } from '@/components/ui/Barcode';

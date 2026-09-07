@@ -1,5 +1,3 @@
-'use client';
-
 import { ZONE } from '@/lib/simulation/pitchSynthesizer';
 import { cn } from '@/lib/utils';
 import type { Lang, PitchData, PitchResult } from '@/types/baseball';
