@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { FileWarning, Minus, Star, TrendingDown, TrendingUp } from 'lucide-react';
 import { Barcode } from '@/components/ui/Barcode';

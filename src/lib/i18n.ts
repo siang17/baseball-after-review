@@ -1,5 +1,50 @@
 import type { Bilingual, Lang } from '@/types/baseball';
 
+/* ------------------------------------------------------------------ */
+/* 語言與路徑                                                        */
+/*                                                                     */
+/* 語言的唯一來源是網址的第一個區段（/zh/... 或 /en/...）。        */
+/* 這樣 Server Component 可以直接從 params 讀到語言，不必為了取語言  */
+/* 而變成 Client Component；兩種語言也都能在 build 時靜態預先產生。     */
+/* ------------------------------------------------------------------ */
+
+export const LANGS = ['zh', 'en'] as const;
+
+/** 網址沒帶語言時的預設。 */
+export const DEFAULT_LANG: Lang = 'zh';
+
+/** 寫進 `<html lang>` 的值。 */
+export const HTML_LANG: Record<Lang, string> = {
+  zh: 'zh-Hant',
+  en: 'en',
+};
+
+export function isLang(value: string): value is Lang {
+  return (LANGS as readonly string[]).includes(value);
+}
+
+/**
+ * 幫站內路徑加上語言前綴：`localePath('en', '/replay')` → `/en/replay`。
+ * 首頁傳 '/' 時會得到 `/en`（而不是 `/en/`）。
+ */
+export function localePath(lang: Lang, path: string): string {
+  if (path === '/') return `/${lang}`;
+  return `/${lang}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
+/**
+ * 把一個已帶語言前綴的路徑換成另一種語言，並保留剩下的路徑。
+ * 用在導覽列的中英切換：`/zh/replay` → `/en/replay`。
+ */
+export function swapLangInPath(pathname: string, next: Lang): string {
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length > 0 && isLang(segments[0])) {
+    segments[0] = next;
+    return `/${segments.join('/')}`;
+  }
+  return localePath(next, pathname);
+}
+
 export function t(text: Bilingual, lang: Lang): string {
   return text[lang];
 }
@@ -104,6 +149,12 @@ export const UI = {
     selectGame: bi('選擇比賽', 'Select a Game'),
     changeGame: bi('重選比賽', 'Change game'),
     editLineup: bi('選/編輯打線', 'Edit Lineups'),
+    chooseModeTitle: bi('先發打線怎麼決定？', 'How should the lineups be set?'),
+    currentModeTitle: bi('當下選擇', 'Actual Starters'),
+    currentModeDesc: bi('直接採用該隊真實先發九棒與投手，不做任何調整。', 'Use each team\'s real starting lineup and pitcher as-is, no changes.'),
+    customModeTitle: bi('自訂模式', 'Custom Mode'),
+    customModeDesc: bi('可自訂棒次、投手，也能把遺珠球員換上場。', 'Customize the batting order, pitcher, and optionally swap in a snub player.'),
+    changeMode: bi('重選模式', 'Change mode'),
     startingLineup: bi('先發打線', 'Starting Lineup'),
     startingPitcher: bi('先發投手', 'Starting Pitcher'),
     snubTab: bi('遺珠', 'Snubs'),

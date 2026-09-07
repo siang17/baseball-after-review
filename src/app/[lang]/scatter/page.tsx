@@ -1,9 +1,7 @@
-'use client';
-
-import { ScatterPlotStudio } from '@/components/analysis/ScatterPlotStudio';
+import { ScatterPlotStudio } from '@/components/analysis/LazyCharts';
 import { METRICS, METRIC_KEYS } from '@/lib/constants';
 import { allPlayers } from '@/data/rosters';
-import { useAppStore } from '@/store/useAppStore';
+import type { Lang } from '@/types/baseball';
 
 /** 名單資料是靜態的，模組載入時算一次即可，避免每次 render 都重新 flatMap。 */
 const ALL_PLAYERS = allPlayers();
@@ -13,8 +11,8 @@ const ALL_PLAYERS = allPlayers();
  * 資料來自 2024 十二強 + 2026 WBC 全部 12 隊名單（真實姓名／守位，統計數字為示範虛構值）。
  * 不同資料域（打擊／投球／守備）的指標互相搭配時本來就不會有交集。
  */
-export default function ScatterPage() {
-  const lang = useAppStore((s) => s.lang);
+export default async function ScatterPage({ params }: { params: Promise<{ lang: Lang }> }) {
+  const { lang } = await params;
 
   return (
     <div className="space-y-4">

@@ -33,6 +33,25 @@ npm run dev
 
 Tailwind v4 不使用 `tailwind.config.js`；所有設計代幣定義在 `src/app/globals.css` 的 `@theme` 區塊。
 
+### 語言與路由
+
+語言的唯一來源是網址的第一個區段：`/zh/...` 與 `/en/...`。
+
+- Server Component 直接從 `params.lang` 取語言；深層的 Client Component 用 `useLang()`
+  （由 `LangProvider` 提供，值同樣來自網址，不持有狀態、不寫 localStorage）。
+- `layout.tsx` 的 `generateStaticParams()` 讓兩種語言都在 build 時靜態預先產生，
+  因此語言在伺服器輸出的 HTML 裡就是正確的，不會有「先中文再閃成英文」的情況。
+- 導覽列的中英切換就是導到同一條路徑的另一語言版本（`/zh/replay` ↔ `/en/replay`）。
+- 舊的無前綴網址（`/replay` 等）由 `next.config.ts` 的 `redirects()` 以 307 導到 `/zh/...`。
+- 切換語言是一次真正的頁面導覽，元件會重新掛載，所以各頁的流程狀態都放在 `store/`
+  的 zustand store（module singleton，能跨導覽存活）：`useReplayStore` 存復盤流程、
+  `useRostersStore` 存名單瀏覽位置、`useMatchupStore` 存選隊流程。切換語言會停在原地，
+  網址上的 query string（例如 `?game=...&autoDecision=1`）也會被語言切換連結原樣帶過去。
+  `SiteHeader` 裡負責這個的 `LangToggleLink` 用了 `useSearchParams()`，因此包了一層
+  `Suspense`——避免讓整個（靜態預先產生的）layout 被迫改成動態渲染，只有這一顆連結
+  在客戶端才知道目前的 query。
+
+
 ---
 
 ## 目錄結構
@@ -44,19 +63,22 @@ baseball-after-review/
 ├── tsconfig.json                 # @/* → src/*
 └── src/
     ├── app/
-    │   ├── layout.tsx            # 全站外框：SiteHeader + 語言還原
     │   ├── globals.css           # 設計代幣、登機證齒孔、翻牌／LED 動畫
-    │   ├── page.tsx              # 登機大廳：Hero + 航班動態看板 + 示範專題
-    │   ├── rosters/page.tsx      # 旅客名單（球員登機證）
-    │   ├── matchup/page.tsx      # 夢幻對決訂位流程
-    │   ├── replay/page.tsx       # 比賽復盤（HUD + 勝率曲線 + 決策艙）
-    │   ├── case-study/page.tsx   # 核心示範專題：2026 WBC 日本 vs. 委內瑞拉
-    │   └── scatter/page.tsx      # 散佈圖分析器
+    │   └── [lang]/               # 語言區段：/zh/... 與 /en/...（兩種都靜態預先產生）
+    │       ├── layout.tsx        # 根 layout：<html lang> + SiteHeader + LangProvider
+    │       ├── page.tsx          # 登機大廳：Hero + 航班動態看板 + 示範專題
+    │       ├── rosters/page.tsx  # 旅客名單（球員登機證）
+    │       ├── matchup/page.tsx  # 夢幻對決訂位流程
+    │       ├── replay/page.tsx   # 比賽復盤（HUD + 勝率曲線 + 決策艙）
+    │       ├── case-study/page.tsx # 核心示範專題：2026 WBC 日本 vs. 委內瑞拉
+    │       └── scatter/page.tsx  # 散佈圖分析器
     │
     ├── components/
     │   ├── layout/
-    │   │   ├── SiteHeader.tsx        # 導覽列 + 中英切換
-    │   │   └── StoreHydration.tsx    # 掛載後才 rehydrate 偏好設定
+    │   │   ├── SiteHeader.tsx        # 導覽列 + 中英切換（切換 = 導到另一語言的同一路徑）
+    │   │   └── LangProvider.tsx      # 把 layout 讀到的語言傳給深層 Client Component
+    │   ├── case-study/
+    │   │   └── CaseStudyActions.tsx  # 專題頁唯一的互動區塊（client island）
     │   ├── boarding/
     │   │   └── BoardingPassCard.tsx  # 登機證卡片（含球員／遺珠／總教練包裝）
     │   ├── matchup/
@@ -66,8 +88,10 @@ baseball-after-review/
     │   ├── replay/
     │   │   └── TacticalControlHUD.tsx    # Pitch Timer / PitchCom / 用球數限制
     │   ├── rosters/
+    │   │   ├── RostersBrowser.tsx        # 年代 → 隊伍 → 名單的瀏覽流程（client island）
     │   │   └── SnubComparison.tsx        # 遺珠 vs. 入選者逐項對照
     │   ├── analysis/
+    │   │   ├── LazyCharts.tsx            # Recharts 圖表的 dynamic import 包裝
     │   │   ├── CrucialPlayAlert.tsx      # 黑匣子警報 + 關鍵轉折清單
     │   │   ├── WinProbabilityChart.tsx   # 勝率曲線 + 槓桿指數
     │   │   ├── DefenseArgumentPanel.tsx  # UZR 分項拆解 + NPB 校正
@@ -80,14 +104,14 @@ baseball-after-review/
     │
     ├── lib/
     │   ├── utils.ts              # cn()、決定性 hash / 條碼、格式化
-    │   ├── i18n.ts               # Bilingual 型別工具 + 全站文案
+    │   ├── i18n.ts               # Bilingual 工具、全站文案、語言/路徑輔助函式
     │   ├── constants.ts          # 賽事、球隊、艙等、用球數規則、指標定義
     │   └── sabermetrics.ts       # RE24 / Win Expectancy / LI / TTOP
     │
     ├── store/
-    │   ├── useAppStore.ts        # 語言偏好（persist）
     │   ├── useMatchupStore.ts    # 兩階段選隊流程狀態
-    │   └── useReplayStore.ts     # 復盤游標、總教練模式、HUD 設定、警報
+    │   ├── useRostersStore.ts    # 名單頁瀏覽位置（年代 → 隊伍）
+    │   └── useReplayStore.ts     # 復盤流程、游標、總教練模式、HUD 設定、警報
     │
     ├── types/
     │   └── baseball.ts           # 全站資料型別（單一事實來源）
@@ -143,12 +167,12 @@ src/components/analysis/ScatterPlotStudio.tsx
 | 模組 | 主要檔案 | 狀態 |
 | --- | --- | --- |
 | 球員名單與資料庫 | `types/baseball.ts`、`data/rosters/` | 型別完成，資料為示範值 |
-| 進階數據與散佈圖 | `lib/constants.ts`（METRICS）、`app/scatter` | 指標字典完成，圖表待實作 |
+| 進階數據與散佈圖 | `lib/constants.ts`（METRICS）、`app/[lang]/scatter` | 指標字典完成，圖表待實作 |
 | 跨年份對決模擬器 | `components/matchup/`、`lib/simulation/` | 完成（選隊流程 + 蒙地卡羅引擎 + 結果頁） |
 | 總教練互動決策 | `components/manager/ManagerDecisionModal.tsx` | 完成（三方對比） |
 | 復盤引擎與戰術控制台 | `components/replay/TacticalControlHUD.tsx` | 完成（Timer / PitchCom / 用球數） |
 | 關鍵轉折點與 WPA | `components/analysis/` | 完成 |
-| 核心示範專題 | `app/case-study`、`data/case-studies/` | 完成（六個章節，資料為示範值） |
+| 核心示範專題 | `app/[lang]/case-study`、`data/case-studies/` | 完成（六個章節，資料為示範值） |
 | AI 戰術助手 | `app/api/ai-manager`（待建） | 未實作 |
 
 ### 核心示範專題章節

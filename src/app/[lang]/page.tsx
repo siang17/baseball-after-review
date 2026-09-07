@@ -1,12 +1,10 @@
-'use client';
-
 import Link from 'next/link';
 import { ArrowRight, Plane } from 'lucide-react';
 import { BoardingPassCard } from '@/components/boarding/BoardingPassCard';
 import { BaggageTag } from '@/components/ui/BaggageTag';
 import { FlightStatusBoard, type BoardRow } from '@/components/ui/FlightStatusBoard';
-import { UI, bi } from '@/lib/i18n';
-import { useAppStore } from '@/store/useAppStore';
+import { UI, bi, localePath } from '@/lib/i18n';
+import type { Lang } from '@/types/baseball';
 
 const SCHEDULE: BoardRow[] = [
   { id: 'g1', flight: 'WBC 026', from: 'VEN', to: 'JPN', gate: 'C', time: '19:00', status: bi('已抵達', 'ARRIVED'), tone: 'arrived' },
@@ -15,8 +13,8 @@ const SCHEDULE: BoardRow[] = [
   { id: 'g4', flight: 'P12 118', from: 'JPN', to: 'TPE', gate: 'B', time: '18:00', status: bi('延誤 · 復盤中', 'DELAYED'), tone: 'delayed' },
 ];
 
-export default function HomePage() {
-  const lang = useAppStore((s) => s.lang);
+export default async function HomePage({ params }: { params: Promise<{ lang: Lang }> }) {
+  const { lang } = await params;
 
   return (
     <div className="space-y-8">
@@ -36,14 +34,14 @@ export default function HomePage() {
 
         <div className="mt-5 flex flex-wrap gap-2">
           <Link
-            href="/matchup"
+            href={localePath(lang, '/matchup')}
             className="flex items-center gap-1.5 rounded-full bg-navy px-5 py-2.5 text-sm font-bold text-white transition hover:bg-ink"
           >
             {UI.nav.matchup[lang]}
             <ArrowRight size={15} />
           </Link>
           <Link
-            href="/replay"
+            href={localePath(lang, '/replay')}
             className="flex items-center gap-1.5 rounded-full border border-line px-5 py-2.5 text-sm font-bold text-ink transition hover:border-navy hover:text-navy"
           >
             {UI.nav.replay[lang]}
@@ -63,7 +61,7 @@ export default function HomePage() {
         <h2 className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-ink-muted">
           {lang === 'zh' ? '核心示範專題' : 'Featured Case Study'}
         </h2>
-        <Link href="/case-study" className="block transition hover:-translate-y-0.5">
+        <Link href={localePath(lang, '/case-study')} className="block transition hover:-translate-y-0.5">
           <BoardingPassCard
             lang={lang}
             title={bi('2026 WBC 日本 vs. 委內瑞拉', '2026 WBC Japan vs. Venezuela')}

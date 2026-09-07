@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { ChevronLeft, ChevronRight, PlaneTakeoff, RefreshCcw } from 'lucide-react';
 import { CrucialPlayList } from '@/components/analysis/CrucialPlayAlert';
-import { WinProbabilityChart } from '@/components/analysis/WinProbabilityChart';
-import { ManagerDecisionModal } from '@/components/manager/ManagerDecisionModal';
+import { WinProbabilityChart } from '@/components/analysis/LazyCharts';
 import { BaseRunnerDiagram } from '@/components/replay/BaseRunnerDiagram';
 import { BattingHeatZone } from '@/components/replay/BattingHeatZone';
 import { BattingTrajectoryChart } from '@/components/replay/BattingTrajectoryChart';
@@ -19,9 +19,30 @@ import { TOURNAMENTS, getTeam } from '@/lib/constants';
 import { UI } from '@/lib/i18n';
 import { generateGameReviewDetailed, type GameReviewResult } from '@/lib/simulation/gameReviewGenerator';
 import { cn } from '@/lib/utils';
-import { useAppStore } from '@/store/useAppStore';
+import { useLang } from '@/components/layout/LangProvider';
 import { useReplayStore } from '@/store/useReplayStore';
-import type { Era, Game, MatchState, Player, Roster, UserDecisionRecord } from '@/types/baseball';
+import type {
+  Era,
+  Game,
+  MatchState,
+  PitchData,
+  Player,
+  Roster,
+  UserDecisionRecord,
+  WinProbabilityPoint,
+} from '@/types/baseball';
+
+/**
+ * 調度決策駕駛艙只在使用者點開決策點時才出現（內部也是 decisionPoint 為 null 就 return null），
+ * 但它拖著 Radix Dialog 與一整批圖示。改成 dynamic import，把這塊從 /replay 的首次載入拿掉。
+ */
+const ManagerDecisionModal = dynamic(
+  () => import('@/components/manager/ManagerDecisionModal').then((m) => m.ManagerDecisionModal),
+  { ssr: false },
+);
+
+/** 穩定的空陣列，當某個打席查不到逐球資料時當 fallback（避免每次 render 新建陣列）。 */
+const EMPTY_PITCHES: PitchData[] = [];
 
 /* ------------------------------------------------------------------ */
 /* 共用：由自訂打線/投手組出一份 Roster                                  */
@@ -72,8 +93,10 @@ function matchStateFromPitch(pitch: GameReviewResult['review']['pitches'][number
 /* ------------------------------------------------------------------ */
 
 function SelectGameStep({ onSelect }: { onSelect: (era: Era, game: Game) => void }) {
-  const lang = useAppStore((s) => s.lang);
-  const [era, setEra] = React.useState<Era>(2026);
+  const lang = useLang();
+  // 分頁選擇也放在 store，切換語言後仍會停在原本那一屆賽程。
+  const era = useReplayStore((s) => s.scheduleEra);
+  const setEra = useReplayStore((s) => s.setScheduleEra);
   const games = era === 2024 ? SCHEDULE_2024 : SCHEDULE_2026;
 
   return (
@@ -146,8 +169,24 @@ function TeamLineupEditor({
   onPitcherChange: (id: string) => void;
   lang: 'zh' | 'en';
 }) {
-  const pool = selectablePlayers(roster);
-  const pitcherPool = [...roster.rotation, ...roster.bullpen, ...(roster.closer ? [roster.closer] : [])];
+  // 這九個打線下拉選單的選項完全相同，且只跟 roster/lang 有關；
+  // 原本每次 render 都重建一次名單、並在內層對每個選項做一次 snubs 線性搜尋（O(pool × snubs × 9）。
+  const pool = React.useMemo(() => selectablePlayers(roster), [roster]);
+  const pitcherPool = React.useMemo(
+    () => [...roster.rotation, ...roster.bullpen, ...(roster.closer ? [roster.closer] : [])],
+    [roster],
+  );
+  const snubIds = React.useMemo(() => new Set(roster.snubs.map((sn) => sn.player.id)), [roster]);
+  const poolById = React.useMemo(() => new Map(pool.map((p) => [p.id, p])), [pool]);
+  const lineupOptions = React.useMemo(
+    () =>
+      pool.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name[lang]} ({p.positions[0]}){snubIds.has(p.id) ? ` · ${UI.replay.snubTab[lang]}` : ''}
+        </option>
+      )),
+    [pool, snubIds, lang],
+  );
 
   return (
     <div className="space-y-3 rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4">
@@ -171,8 +210,8 @@ function TeamLineupEditor({
       <div className="space-y-2">
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{UI.replay.startingLineup[lang]}</span>
         {lineupIds.map((id, i) => {
-          const current = pool.find((p) => p.id === id);
-          const isSnub = roster.snubs.some((s) => s.player.id === id);
+          const current = poolById.get(id);
+          const isSnub = snubIds.has(id);
           const replacedStarter = roster.lineup[i];
           return (
             <div key={i} className="flex items-center gap-2">
@@ -189,11 +228,7 @@ function TeamLineupEditor({
                   isSnub ? 'border-alert bg-alert-soft text-alert' : 'border-line bg-paper-pure text-ink',
                 )}
               >
-                {pool.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name[lang]} ({p.positions[0]}){roster.snubs.some((s) => s.player.id === p.id) ? ` · ${UI.replay.snubTab[lang]}` : ''}
-                  </option>
-                ))}
+                {lineupOptions}
               </select>
               {isSnub && current && replacedStarter && (
                 <SnubImpactPanel snub={current} replaced={replacedStarter} era={roster.era} lang={lang} className="w-full basis-full" />
@@ -221,7 +256,7 @@ function ReviewStep({
   homeCode: string;
   awayCode: string;
 }) {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const cursor = useReplayStore((s) => s.cursor);
   const setCursor = useReplayStore((s) => s.setCursor);
   const managerMode = useReplayStore((s) => s.managerMode);
@@ -231,20 +266,57 @@ function ReviewStep({
   const resolveDecision = useReplayStore((s) => s.resolveDecision);
   const dismissDecision = useReplayStore((s) => s.dismissDecision);
 
+  // 決策艙是 dynamic import，所以不在 /replay 的首次載入 bundle 裡。
+  // 這個復盤畫面本身只有在使用者選完比賽、按下「產生逐球復盤」之後才會掛載，
+  // 此時首次載入早已結束，直接把 chunk 拉下來不會跟任何東西搶頻寬，
+  // 但能保證使用者真的點開決策點時不必等網路。
+  React.useEffect(() => {
+    void import('@/components/manager/ManagerDecisionModal');
+  }, []);
+
   const pitches = review.pitches;
+
+  // 游標每移一格就重新 render，而一場比賽動輒三位數顆球；
+  // 把「按打席分組」與「pitchId → 索引」先算好，避免每次 render 都全陣列 filter/findIndex。
+  const { pitchesByAtBat, indexByPitchId } = React.useMemo(() => {
+    const byAtBat = new Map<number, typeof pitches>();
+    const byId = new Map<string, number>();
+    pitches.forEach((p, i) => {
+      byId.set(p.id, i);
+      const bucket = byAtBat.get(p.atBatIndex);
+      if (bucket) bucket.push(p);
+      else byAtBat.set(p.atBatIndex, [p]);
+    });
+    return { pitchesByAtBat: byAtBat, indexByPitchId: byId };
+  }, [pitches]);
+
   const clampedCursor = Math.min(cursor, pitches.length - 1);
   const pitch = pitches[clampedCursor];
-  const state = matchStateFromPitch(pitch, review);
-  const pitcher = playerById(pitch.pitcherId);
-  const batter = playerById(pitch.batterId);
-  const atBatPitches = pitches.filter((p) => p.atBatIndex === pitch.atBatIndex);
+  const state = React.useMemo(() => matchStateFromPitch(pitch, review), [pitch, review]);
+  const pitcher = React.useMemo(() => playerById(pitch.pitcherId), [pitch.pitcherId]);
+  const batter = React.useMemo(() => playerById(pitch.batterId), [pitch.batterId]);
+  const atBatPitches = pitchesByAtBat.get(pitch.atBatIndex) ?? EMPTY_PITCHES;
 
-  const jumpToPitchId = (pitchId: string) => {
-    const idx = pitches.findIndex((p) => p.id === pitchId);
-    if (idx >= 0) setCursor(idx);
-  };
+  const jumpToPitchId = React.useCallback(
+    (pitchId: string) => {
+      const idx = indexByPitchId.get(pitchId);
+      if (idx !== undefined) setCursor(idx);
+    },
+    [indexByPitchId, setCursor],
+  );
 
-  const handleSubmit = (record: UserDecisionRecord) => resolveDecision(record);
+  const handleSubmit = React.useCallback(
+    (record: UserDecisionRecord) => resolveDecision(record),
+    [resolveDecision],
+  );
+
+  const handleSelectWinProbabilityPoint = React.useCallback(
+    (point: WinProbabilityPoint) => {
+      const target = pitchesByAtBat.get(point.index)?.[0];
+      if (target) jumpToPitchId(target.id);
+    },
+    [pitchesByAtBat, jumpToPitchId],
+  );
 
   return (
     <div className="space-y-6">
@@ -301,10 +373,7 @@ function ReviewStep({
         homeLabel={homeCode}
         awayLabel={awayCode}
         cursorIndex={pitch.atBatIndex}
-        onSelectPoint={(point) => {
-          const target = pitches.find((p) => p.atBatIndex === point.index);
-          if (target) jumpToPitchId(target.id);
-        }}
+        onSelectPoint={handleSelectWinProbabilityPoint}
       />
 
       {batter && pitcher && (
@@ -346,14 +415,16 @@ function ReviewStep({
         )}
       </section>
 
-      <ManagerDecisionModal
-        decisionPoint={activeDecision}
-        managerMode={managerMode}
-        lang={lang}
-        open={Boolean(activeDecision)}
-        onSubmit={handleSubmit}
-        onClose={dismissDecision}
-      />
+      {activeDecision && (
+        <ManagerDecisionModal
+          decisionPoint={activeDecision}
+          managerMode={managerMode}
+          lang={lang}
+          open
+          onSubmit={handleSubmit}
+          onClose={dismissDecision}
+        />
+      )}
     </div>
   );
 }
@@ -362,46 +433,62 @@ function ReviewStep({
 /* 主頁面                                                               */
 /* ------------------------------------------------------------------ */
 
-type FlowStep = 'SELECT_GAME' | 'EDIT_LINEUP' | 'REVIEW';
-
 export default function ReplayPage() {
-  const lang = useAppStore((s) => s.lang);
+  const lang = useLang();
   const setCursor = useReplayStore((s) => s.setCursor);
   const openDecision = useReplayStore((s) => s.openDecision);
 
-  const [flowStep, setFlowStep] = React.useState<FlowStep>('SELECT_GAME');
-  const [era, setEra] = React.useState<Era>(2026);
-  const [game, setGame] = React.useState<Game | null>(null);
-  const [homeLineup, setHomeLineup] = React.useState<string[]>([]);
-  const [awayLineup, setAwayLineup] = React.useState<string[]>([]);
-  const [homePitcher, setHomePitcher] = React.useState<string>('');
-  const [awayPitcher, setAwayPitcher] = React.useState<string>('');
-  const [seedNonce, setSeedNonce] = React.useState(0);
+  // 流程狀態住在 store，而不是這個元件的 useState：
+  // 切換語言是一次真正的導覽，元件會重新掛載，但 store 能跨導覽存活，
+  // 使用者不會被打回選比賽的畫面。
+  const flowStep = useReplayStore((s) => s.flowStep);
+  const era = useReplayStore((s) => s.era);
+  const game = useReplayStore((s) => s.game);
+  const homeLineup = useReplayStore((s) => s.homeLineup);
+  const awayLineup = useReplayStore((s) => s.awayLineup);
+  const homePitcher = useReplayStore((s) => s.homePitcher);
+  const awayPitcher = useReplayStore((s) => s.awayPitcher);
+  const seedNonce = useReplayStore((s) => s.seedNonce);
+  const setFlowStep = useReplayStore((s) => s.setFlowStep);
+  const selectGame = useReplayStore((s) => s.selectGame);
+  const setHomeLineup = useReplayStore((s) => s.setHomeLineup);
+  const setAwayLineup = useReplayStore((s) => s.setAwayLineup);
+  const setHomePitcher = useReplayStore((s) => s.setHomePitcher);
+  const setAwayPitcher = useReplayStore((s) => s.setAwayPitcher);
+  const regenerate = useReplayStore((s) => s.regenerate);
+
   const [autoDecisionPending, setAutoDecisionPending] = React.useState(false);
 
   const homeRoster = game ? rosterFor(era, game.homeTeamCode) : null;
   const awayRoster = game ? rosterFor(era, game.awayTeamCode) : null;
 
-  const handleSelectGame = (selectedEra: Era, selectedGame: Game, opts?: { skipToReview?: boolean }) => {
-    const home = rosterFor(selectedEra, selectedGame.homeTeamCode);
-    const away = rosterFor(selectedEra, selectedGame.awayTeamCode);
-    if (!home || !away) return;
-    setEra(selectedEra);
-    setGame(selectedGame);
-    setHomeLineup(home.lineup.map((p) => p.id));
-    setAwayLineup(away.lineup.map((p) => p.id));
-    setHomePitcher(home.rotation[0]?.id ?? home.bullpen[0]?.id ?? '');
-    setAwayPitcher(away.rotation[0]?.id ?? away.bullpen[0]?.id ?? '');
-    setFlowStep(opts?.skipToReview ? 'REVIEW' : 'EDIT_LINEUP');
-    setCursor(0);
-  };
+  /** 從名單算出雙方的真實先發打線與先發投手，再交給 store 記住。 */
+  const handleSelectGame = React.useCallback(
+    (selectedEra: Era, selectedGame: Game, opts?: { skipToReview?: boolean }) => {
+      const home = rosterFor(selectedEra, selectedGame.homeTeamCode);
+      const away = rosterFor(selectedEra, selectedGame.awayTeamCode);
+      if (!home || !away) return;
+      selectGame({
+        era: selectedEra,
+        game: selectedGame,
+        homeLineup: home.lineup.map((p) => p.id),
+        awayLineup: away.lineup.map((p) => p.id),
+        homePitcher: home.rotation[0]?.id ?? home.bullpen[0]?.id ?? '',
+        awayPitcher: away.rotation[0]?.id ?? away.bullpen[0]?.id ?? '',
+        skipToReview: opts?.skipToReview,
+      });
+    },
+    [selectGame],
+  );
 
   // 從 /case-study 等外部連結帶 ?game=<id>&autoDecision=1 進來時，
   // 略過選比賽/編輯打線，直接產生復盤並跳到第一個調度決策點。
+  // 若 store 裡已經就是這場比賽（例如剛切換完語言重新掛載），就不重設，
+  // 否則游標與已做的調度都會被清掉。
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const gameId = params.get('game');
-    if (!gameId) return;
+    if (!gameId || game?.id === gameId) return;
     const found =
       SCHEDULE_2024.find((g) => g.id === gameId) ?? SCHEDULE_2026.find((g) => g.id === gameId);
     if (!found) return;
@@ -440,7 +527,7 @@ export default function ReplayPage() {
 
       {flowStep === 'SELECT_GAME' && <SelectGameStep onSelect={handleSelectGame} />}
 
-      {flowStep === 'EDIT_LINEUP' && game && homeRoster && awayRoster && (
+      {flowStep === 'CHOOSE_MODE' && game && (
         <div className="space-y-4">
           <button
             type="button"
@@ -449,6 +536,40 @@ export default function ReplayPage() {
           >
             <ChevronLeft size={14} />
             {UI.replay.changeGame[lang]}
+          </button>
+
+          <h2 className="text-sm font-bold text-navy">{UI.replay.chooseModeTitle[lang]}</h2>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setFlowStep('REVIEW')}
+              className="group rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4 text-left transition hover:-translate-y-0.5 hover:border-navy hover:shadow-[0_10px_28px_-18px_rgba(11,37,69,0.5)]"
+            >
+              <h3 className="text-base font-bold text-ink">{UI.replay.currentModeTitle[lang]}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink-muted">{UI.replay.currentModeDesc[lang]}</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFlowStep('EDIT_LINEUP')}
+              className="group rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4 text-left transition hover:-translate-y-0.5 hover:border-plum hover:shadow-[0_10px_28px_-18px_rgba(11,37,69,0.5)]"
+            >
+              <h3 className="text-base font-bold text-ink">{UI.replay.customModeTitle[lang]}</h3>
+              <p className="mt-1 text-xs leading-relaxed text-ink-muted">{UI.replay.customModeDesc[lang]}</p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {flowStep === 'EDIT_LINEUP' && game && homeRoster && awayRoster && (
+        <div className="space-y-4">
+          <button
+            type="button"
+            onClick={() => setFlowStep('CHOOSE_MODE')}
+            className="flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-ink"
+          >
+            <ChevronLeft size={14} />
+            {UI.replay.changeMode[lang]}
           </button>
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -499,10 +620,7 @@ export default function ReplayPage() {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setSeedNonce((n) => n + 1);
-                setCursor(0);
-              }}
+              onClick={regenerate}
               className="flex items-center gap-1 text-xs font-semibold text-ink-muted hover:text-navy"
             >
               <RefreshCcw size={12} />

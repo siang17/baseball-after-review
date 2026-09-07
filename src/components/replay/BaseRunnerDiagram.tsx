@@ -1,5 +1,3 @@
-'use client';
-
 import { cn } from '@/lib/utils';
 import type { BaseState, Lang, Player } from '@/types/baseball';
 

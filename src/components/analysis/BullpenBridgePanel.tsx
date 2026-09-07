@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { CalendarClock, Lightbulb, Luggage, PlaneLanding } from 'lucide-react';
 import { cn, formatSigned } from '@/lib/utils';

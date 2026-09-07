@@ -1,5 +1,3 @@
-'use client';
-
 import { barcodeBars, cn } from '@/lib/utils';
 
 interface BarcodeProps {
