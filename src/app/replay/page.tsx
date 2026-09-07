@@ -1,10 +1,10 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { ChevronLeft, ChevronRight, PlaneTakeoff, RefreshCcw } from 'lucide-react';
 import { CrucialPlayList } from '@/components/analysis/CrucialPlayAlert';
-import { WinProbabilityChart } from '@/components/analysis/WinProbabilityChart';
-import { ManagerDecisionModal } from '@/components/manager/ManagerDecisionModal';
+import { WinProbabilityChart } from '@/components/analysis/LazyCharts';
 import { BaseRunnerDiagram } from '@/components/replay/BaseRunnerDiagram';
 import { BattingHeatZone } from '@/components/replay/BattingHeatZone';
 import { BattingTrajectoryChart } from '@/components/replay/BattingTrajectoryChart';
@@ -21,7 +21,28 @@ import { generateGameReviewDetailed, type GameReviewResult } from '@/lib/simulat
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import { useReplayStore } from '@/store/useReplayStore';
-import type { Era, Game, MatchState, Player, Roster, UserDecisionRecord } from '@/types/baseball';
+import type {
+  Era,
+  Game,
+  MatchState,
+  PitchData,
+  Player,
+  Roster,
+  UserDecisionRecord,
+  WinProbabilityPoint,
+} from '@/types/baseball';
+
+/**
+ * 調度決策駕駛艙只在使用者點開決策點時才出現（內部也是 decisionPoint 為 null 就 return null），
+ * 但它拖著 Radix Dialog 與一整批圖示。改成 dynamic import，把這塊從 /replay 的首次載入拿掉。
+ */
+const ManagerDecisionModal = dynamic(
+  () => import('@/components/manager/ManagerDecisionModal').then((m) => m.ManagerDecisionModal),
+  { ssr: false },
+);
+
+/** 穩定的空陣列，當某個打席查不到逐球資料時當 fallback（避免每次 render 新建陣列）。 */
+const EMPTY_PITCHES: PitchData[] = [];
 
 /* ------------------------------------------------------------------ */
 /* 共用：由自訂打線/投手組出一份 Roster                                  */
@@ -146,8 +167,24 @@ function TeamLineupEditor({
   onPitcherChange: (id: string) => void;
   lang: 'zh' | 'en';
 }) {
-  const pool = selectablePlayers(roster);
-  const pitcherPool = [...roster.rotation, ...roster.bullpen, ...(roster.closer ? [roster.closer] : [])];
+  // 這九個打線下拉選單的選項完全相同，且只跟 roster/lang 有關；
+  // 原本每次 render 都重建一次名單、並在內層對每個選項做一次 snubs 線性搜尋（O(pool × snubs × 9）。
+  const pool = React.useMemo(() => selectablePlayers(roster), [roster]);
+  const pitcherPool = React.useMemo(
+    () => [...roster.rotation, ...roster.bullpen, ...(roster.closer ? [roster.closer] : [])],
+    [roster],
+  );
+  const snubIds = React.useMemo(() => new Set(roster.snubs.map((sn) => sn.player.id)), [roster]);
+  const poolById = React.useMemo(() => new Map(pool.map((p) => [p.id, p])), [pool]);
+  const lineupOptions = React.useMemo(
+    () =>
+      pool.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name[lang]} ({p.positions[0]}){snubIds.has(p.id) ? ` · ${UI.replay.snubTab[lang]}` : ''}
+        </option>
+      )),
+    [pool, snubIds, lang],
+  );
 
   return (
     <div className="space-y-3 rounded-[var(--radius-pass)] border border-line bg-paper-pure p-4">
@@ -171,8 +208,8 @@ function TeamLineupEditor({
       <div className="space-y-2">
         <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{UI.replay.startingLineup[lang]}</span>
         {lineupIds.map((id, i) => {
-          const current = pool.find((p) => p.id === id);
-          const isSnub = roster.snubs.some((s) => s.player.id === id);
+          const current = poolById.get(id);
+          const isSnub = snubIds.has(id);
           const replacedStarter = roster.lineup[i];
           return (
             <div key={i} className="flex items-center gap-2">
@@ -189,11 +226,7 @@ function TeamLineupEditor({
                   isSnub ? 'border-alert bg-alert-soft text-alert' : 'border-line bg-paper-pure text-ink',
                 )}
               >
-                {pool.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name[lang]} ({p.positions[0]}){roster.snubs.some((s) => s.player.id === p.id) ? ` · ${UI.replay.snubTab[lang]}` : ''}
-                  </option>
-                ))}
+                {lineupOptions}
               </select>
               {isSnub && current && replacedStarter && (
                 <SnubImpactPanel snub={current} replaced={replacedStarter} era={roster.era} lang={lang} className="w-full basis-full" />
@@ -231,20 +264,57 @@ function ReviewStep({
   const resolveDecision = useReplayStore((s) => s.resolveDecision);
   const dismissDecision = useReplayStore((s) => s.dismissDecision);
 
+  // 決策艙是 dynamic import，所以不在 /replay 的首次載入 bundle 裡。
+  // 這個復盤畫面本身只有在使用者選完比賽、按下「產生逐球復盤」之後才會掛載，
+  // 此時首次載入早已結束，直接把 chunk 拉下來不會跟任何東西搶頻寬，
+  // 但能保證使用者真的點開決策點時不必等網路。
+  React.useEffect(() => {
+    void import('@/components/manager/ManagerDecisionModal');
+  }, []);
+
   const pitches = review.pitches;
+
+  // 游標每移一格就重新 render，而一場比賽動輒三位數顆球；
+  // 把「按打席分組」與「pitchId → 索引」先算好，避免每次 render 都全陣列 filter/findIndex。
+  const { pitchesByAtBat, indexByPitchId } = React.useMemo(() => {
+    const byAtBat = new Map<number, typeof pitches>();
+    const byId = new Map<string, number>();
+    pitches.forEach((p, i) => {
+      byId.set(p.id, i);
+      const bucket = byAtBat.get(p.atBatIndex);
+      if (bucket) bucket.push(p);
+      else byAtBat.set(p.atBatIndex, [p]);
+    });
+    return { pitchesByAtBat: byAtBat, indexByPitchId: byId };
+  }, [pitches]);
+
   const clampedCursor = Math.min(cursor, pitches.length - 1);
   const pitch = pitches[clampedCursor];
-  const state = matchStateFromPitch(pitch, review);
-  const pitcher = playerById(pitch.pitcherId);
-  const batter = playerById(pitch.batterId);
-  const atBatPitches = pitches.filter((p) => p.atBatIndex === pitch.atBatIndex);
+  const state = React.useMemo(() => matchStateFromPitch(pitch, review), [pitch, review]);
+  const pitcher = React.useMemo(() => playerById(pitch.pitcherId), [pitch.pitcherId]);
+  const batter = React.useMemo(() => playerById(pitch.batterId), [pitch.batterId]);
+  const atBatPitches = pitchesByAtBat.get(pitch.atBatIndex) ?? EMPTY_PITCHES;
 
-  const jumpToPitchId = (pitchId: string) => {
-    const idx = pitches.findIndex((p) => p.id === pitchId);
-    if (idx >= 0) setCursor(idx);
-  };
+  const jumpToPitchId = React.useCallback(
+    (pitchId: string) => {
+      const idx = indexByPitchId.get(pitchId);
+      if (idx !== undefined) setCursor(idx);
+    },
+    [indexByPitchId, setCursor],
+  );
 
-  const handleSubmit = (record: UserDecisionRecord) => resolveDecision(record);
+  const handleSubmit = React.useCallback(
+    (record: UserDecisionRecord) => resolveDecision(record),
+    [resolveDecision],
+  );
+
+  const handleSelectWinProbabilityPoint = React.useCallback(
+    (point: WinProbabilityPoint) => {
+      const target = pitchesByAtBat.get(point.index)?.[0];
+      if (target) jumpToPitchId(target.id);
+    },
+    [pitchesByAtBat, jumpToPitchId],
+  );
 
   return (
     <div className="space-y-6">
@@ -301,10 +371,7 @@ function ReviewStep({
         homeLabel={homeCode}
         awayLabel={awayCode}
         cursorIndex={pitch.atBatIndex}
-        onSelectPoint={(point) => {
-          const target = pitches.find((p) => p.atBatIndex === point.index);
-          if (target) jumpToPitchId(target.id);
-        }}
+        onSelectPoint={handleSelectWinProbabilityPoint}
       />
 
       {batter && pitcher && (
@@ -346,14 +413,16 @@ function ReviewStep({
         )}
       </section>
 
-      <ManagerDecisionModal
-        decisionPoint={activeDecision}
-        managerMode={managerMode}
-        lang={lang}
-        open={Boolean(activeDecision)}
-        onSubmit={handleSubmit}
-        onClose={dismissDecision}
-      />
+      {activeDecision && (
+        <ManagerDecisionModal
+          decisionPoint={activeDecision}
+          managerMode={managerMode}
+          lang={lang}
+          open
+          onSubmit={handleSubmit}
+          onClose={dismissDecision}
+        />
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { ScatterPlotStudio } from '@/components/analysis/ScatterPlotStudio';
+import { ScatterPlotStudio } from '@/components/analysis/LazyCharts';
 import { METRICS, METRIC_KEYS } from '@/lib/constants';
 import { allPlayers } from '@/data/rosters';
 import { useAppStore } from '@/store/useAppStore';

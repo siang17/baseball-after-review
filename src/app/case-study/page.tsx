@@ -14,7 +14,7 @@ import { BullpenBridgePanel } from '@/components/analysis/BullpenBridgePanel';
 import { CrucialPlayAlert, CrucialPlayList } from '@/components/analysis/CrucialPlayAlert';
 import { DefenseArgumentPanel } from '@/components/analysis/DefenseArgumentPanel';
 import { TempoImpactPanel } from '@/components/analysis/TempoImpactPanel';
-import { WinProbabilityChart } from '@/components/analysis/WinProbabilityChart';
+import { WinProbabilityChart } from '@/components/analysis/LazyCharts';
 import { BoardingPassCard } from '@/components/boarding/BoardingPassCard';
 import { SnubComparison } from '@/components/rosters/SnubComparison';
 import { BaggageTag } from '@/components/ui/BaggageTag';

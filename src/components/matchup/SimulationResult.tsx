@@ -1,7 +1,7 @@
 'use client';
 
 import { BarChart3, Gauge, RotateCcw, Swords } from 'lucide-react';
-import { WinProbabilityChart } from '@/components/analysis/WinProbabilityChart';
+import { WinProbabilityChart } from '@/components/analysis/LazyCharts';
 import { getTeam } from '@/lib/constants';
 import type { Lang, MatchupSimulationResult } from '@/types/baseball';
 
