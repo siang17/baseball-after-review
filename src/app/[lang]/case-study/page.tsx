@@ -3,6 +3,7 @@ import {
   ArrowRight,
   BookOpen,
   Gauge,
+  Newspaper,
   PlaneTakeoff,
   Sparkles,
   Users,
@@ -22,7 +23,7 @@ import {
   CASE_TEMPO,
   NPB_DEFENSE_DISCOUNT,
 } from '@/data/case-studies/wbc2026-jpn-ven';
-import { DEMO_GAME_REVIEW } from '@/data/games/wbc2026-jpn-ven';
+import { DEMO_GAME_REVIEW, REAL_RESULT } from '@/data/games/wbc2026-jpn-ven';
 import { playerById, rosterFor } from '@/data/rosters';
 import { DEMO_PLAYERS } from '@/data/rosters/demoPlayers';
 import { createPitchLimitConfig } from '@/lib/constants';
@@ -220,9 +221,9 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
           <div className="flex flex-wrap gap-2">
             <BaggageTag
               lang={lang}
-              label={bi('最終比分', 'Final')}
+              label={bi('總教練模式結果', 'Manager mode result')}
               value={`${review.game.finalScore?.away}–${review.game.finalScore?.home}`}
-              footnote={bi('主隊日本勝', 'Home (JPN) win')}
+              footnote={bi('模擬情境，非真實比分', 'Simulated, not the real score')}
             />
             <BaggageTag
               lang={lang}
@@ -245,10 +246,26 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
           </div>
         </BoardingPassCard>
 
+        {/* 真實結果 —— 這場八強賽是真實比賽，跟上面「總教練模式」的模擬情境刻意分開標示。 */}
+        <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-navy/25 bg-navy/[0.03] px-3 py-2.5">
+          <Newspaper size={15} className="mt-0.5 shrink-0 text-navy" />
+          <div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-navy">
+                {lang === 'zh' ? '真實結果' : 'Real result'}
+              </span>
+              <span className="font-[family-name:var(--font-mono-ticket)] text-sm font-black text-navy">
+                VEN {REAL_RESULT.finalScore.away} – {REAL_RESULT.finalScore.home} JPN
+              </span>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-ink-soft">{REAL_RESULT.summary[lang]}</p>
+          </div>
+        </div>
+
         <p className="mt-3 rounded-lg border border-alert/40 bg-alert-soft px-3 py-2 text-xs leading-relaxed text-alert">
           {lang === 'zh'
-            ? '⚠️ 「球員遺珠評估」與「日本隊守備論證」兩節已換成 2026 日本隊真實名單與真實預測遺珠，但守備分項、比分、逐球內容、節奏與牛棚時序等其餘數字仍是示範用虛構情境，新聞出處留空，不可作為真實賽事結論引用。'
-            : '⚠️ The "Roster Snubs" and "Japan Defense Argument" sections now use the real 2026 Japan roster and real predicted snubs. Everything else on this page — the score, pitch-by-pitch content, tempo, and bullpen sequencing — is still an illustrative placeholder scenario with no real news sources. Do not cite it as real findings.'}
+            ? '⚠️ 上方「真實結果」已查證，但這頁其餘內容（登機證上的「總教練模式結果」、逐局比分、逐球內容、決策節點）都是假設日本總教練在七局下做了另一種調度決定的「總教練模式」情境模擬，不是真實發生的事。「球員遺珠評估」與「日本隊守備論證」兩節使用 2026 日本隊真實名單與真實預測遺珠，守備分項本身仍是示範數字，不可作為真實賽事結論引用。'
+            : '⚠️ The "Real result" above is verified. Everything else on this page — the "manager mode result" on the boarding pass, the inning-by-inning score, pitch-by-pitch content, and decision points — is a simulated "manager mode" scenario imagining Japan’s manager making a different 7th-inning call. It did not really happen. The "Roster Snubs" and "Japan Defense Argument" sections use the real 2026 Japan roster and real predicted snubs, but the defensive splits themselves are still illustrative placeholder numbers.'}
         </p>
       </section>
 
@@ -262,8 +279,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
             lang={lang}
             title={CASE_SECTIONS[0].label}
             blurb={bi(
-              '先看比分怎麼來的，再進戰術分析。逐局比分與得分時間軸都是從同一份勝率曲線反推，不是另外編的數字。',
-              'The score before the story. The line score and scoring plays below are derived from the same win-probability data used across this page — not separately invented numbers.',
+              '以下是「總教練模式」情境的逐局比分，不是真實比分（真實結果見上方 Hero 卡片）——但跟本頁其餘分析引用的是同一份模擬資料，不是另外編的數字。',
+              'This is the inning-by-inning line for the "manager mode" simulation, not the real score (see the Real Result callout above) — but it is derived from the same simulated data used across this page, not separately invented numbers.',
             )}
           />
 
@@ -413,7 +430,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="rounded-lg border border-line bg-paper p-3">
                 <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">
-                  {lang === 'zh' ? '歷史真實選擇' : 'Historical call'}
+                  {lang === 'zh' ? '模擬情境原始選擇' : "Simulation's baseline call"}
                 </div>
                 <div className="mt-1 text-sm font-bold text-ink">
                   {decisionPoint.historical.option.label[lang]}

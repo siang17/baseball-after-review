@@ -34,6 +34,27 @@ export const DEMO_GAME: Game = {
 };
 
 /* ------------------------------------------------------------------ */
+/* 真實結果                                                            */
+/*                                                                     */
+/* `DEMO_GAME` 這個「總教練模式」情境是假設日本在七局下換投／續投的      */
+/* 另一種劇本，最終比分（JPN 4-3 主場守住）是虛構的。真實世界裡，這場    */
+/* 2026 WBC 八強賽（2026-03-14, loanDepot park, Miami）委內瑞拉在六局   */
+/* 靠 Maikel García、Wilyer Abreu 的長打逆轉，淘汰衛冕軍日本。          */
+/* 已用網路搜尋查證（ESPN boxscore gameId 401845798，並與 MLB.com /     */
+/* CBS Sports / Yahoo Sports / Olympics.com 等交叉確認）。              */
+/* ------------------------------------------------------------------ */
+export const REAL_RESULT = {
+  date: '2026-03-14',
+  venue: bi('邁阿密 loanDepot park', 'loanDepot park, Miami'),
+  finalScore: { home: 5, away: 8 },
+  winner: 'VEN' as const,
+  summary: bi(
+    '真實結果：委內瑞拉八強賽 8-5 逆轉淘汰衛冕軍日本。五局 Maikel García 兩分砲追到 4-5，六局 Wilyer Abreu 三分砲反超為 7-5，委內瑞拉晉級四強並在冠軍賽 3-2 擊敗美國，首度奪下 WBC 冠軍。',
+    'Real result: Venezuela came back to beat defending champion Japan 8-5 in the quarterfinal. Maikel García’s two-run homer in the 5th cut it to 4-5, then Wilyer Abreu’s three-run homer in the 6th put Venezuela ahead 7-5. Venezuela went on to beat the USA 3-2 in the final for its first WBC title.',
+  ),
+};
+
+/* ------------------------------------------------------------------ */
 /* 勝率曲線                                                            */
 /* ------------------------------------------------------------------ */
 
