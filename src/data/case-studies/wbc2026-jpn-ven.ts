@@ -445,6 +445,7 @@ export const CASE_BULLPEN: BullpenBridgePlan[] = [
 /* ------------------------------------------------------------------ */
 
 export const CASE_SECTIONS = [
+  { id: 'gameflow', label: bi('比賽過程', 'Game Flow') },
   { id: 'snubs', label: bi('球員遺珠評估', 'Roster Snubs') },
   { id: 'defense', label: bi('日本隊守備論證', 'Japan Defense Argument') },
   { id: 'crucial', label: bi('最關鍵 Play 與調度', 'Crucial Play & Call') },

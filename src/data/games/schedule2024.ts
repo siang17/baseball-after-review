@@ -1,10 +1,8 @@
 /**
- * 2024 WBSC 十二強（Premier12）Super Round + 獎牌賽 — 真實賽程
+ * 2024 WBSC 十二強（Premier12）Super Round + 獎牌賽 — 真實賽程與比分
  *
- * 對戰組合與日期已用網路搜尋查證（東京巨蛋，2024/11/21–24）。
- * 兩場未查到確切比分的 Super Round 場次（JPN vs VEN、USA vs VEN）
- * 以 `finalScore: null` / `status: 'SCHEDULED'` 標記為「已知有此場但比分未查證」，
- * 正式上線前請以 WBSC 官方戰績為準替換。
+ * 全部 8 場對戰組合、日期、比分皆已用網路搜尋查證（東京巨蛋，2024/11/21–24），
+ * 以 WBSC 官方賽事報導（wbsc.org）為主要來源。查證於 2026-09（本次 session）。
  */
 
 import { bi } from '@/lib/i18n';
@@ -58,7 +56,7 @@ export const SCHEDULE_2024: Game[] = [
     pitchLimitPreset: 65,
   },
   {
-    // ⚠️ 確有此場（同批次賽程），但確切比分未查證。
+    // JPN 9, VEN 6 —— 牧秀悟七局下滿貫砲逆轉。來源：wbsc.org。
     id: '2024-p12-11-22-jpn-ven',
     tournamentId: 'PREMIER12_2024',
     era: 2024,
@@ -67,9 +65,9 @@ export const SCHEDULE_2024: Game[] = [
     round: SUPER_ROUND,
     homeTeamCode: 'JPN',
     awayTeamCode: 'VEN',
-    finalScore: null,
-    status: 'SCHEDULED',
-    boardStatus: bi('比分待查證', 'Score unverified'),
+    finalScore: { home: 9, away: 6 },
+    status: 'FINAL',
+    boardStatus: bi('已抵達', 'Arrived'),
     pitchLimitPreset: 65,
   },
   {
@@ -87,7 +85,7 @@ export const SCHEDULE_2024: Game[] = [
     pitchLimitPreset: 65,
   },
   {
-    // ⚠️ 確有此場（同批次賽程），但確切比分未查證。
+    // USA 6, VEN 5 —— 九局上 Ryan Ward 陽春砲致勝。來源：wbsc.org。
     id: '2024-p12-11-23-usa-ven',
     tournamentId: 'PREMIER12_2024',
     era: 2024,
@@ -96,9 +94,9 @@ export const SCHEDULE_2024: Game[] = [
     round: SUPER_ROUND,
     homeTeamCode: 'USA',
     awayTeamCode: 'VEN',
-    finalScore: null,
-    status: 'SCHEDULED',
-    boardStatus: bi('比分待查證', 'Score unverified'),
+    finalScore: { home: 6, away: 5 },
+    status: 'FINAL',
+    boardStatus: bi('已抵達', 'Arrived'),
     pitchLimitPreset: 65,
   },
   {
@@ -116,7 +114,7 @@ export const SCHEDULE_2024: Game[] = [
     pitchLimitPreset: 65,
   },
   {
-    // ⚠️ 確有殿軍賽，但確切比分未查證。
+    // USA 6, VEN 1 —— 殿軍賽，美國奪隊史首面十二強銅牌。來源：wbsc.org。
     id: '2024-p12-11-24-bronze-usa-ven',
     tournamentId: 'PREMIER12_2024',
     era: 2024,
@@ -125,9 +123,9 @@ export const SCHEDULE_2024: Game[] = [
     round: MEDAL_GAME,
     homeTeamCode: 'USA',
     awayTeamCode: 'VEN',
-    finalScore: null,
-    status: 'SCHEDULED',
-    boardStatus: bi('比分待查證', 'Score unverified'),
+    finalScore: { home: 6, away: 1 },
+    status: 'FINAL',
+    boardStatus: bi('已抵達', 'Arrived'),
     pitchLimitPreset: 65,
   },
 ];

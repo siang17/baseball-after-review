@@ -2,16 +2,8 @@ import Link from 'next/link';
 import { ArrowRight, Plane } from 'lucide-react';
 import { BoardingPassCard } from '@/components/boarding/BoardingPassCard';
 import { BaggageTag } from '@/components/ui/BaggageTag';
-import { FlightStatusBoard, type BoardRow } from '@/components/ui/FlightStatusBoard';
 import { UI, bi, localePath } from '@/lib/i18n';
 import type { Lang } from '@/types/baseball';
-
-const SCHEDULE: BoardRow[] = [
-  { id: 'g1', flight: 'WBC 026', from: 'VEN', to: 'JPN', gate: 'C', time: '19:00', status: bi('已抵達', 'ARRIVED'), tone: 'arrived' },
-  { id: 'g2', flight: 'WBC 031', from: 'USA', to: 'DOM', gate: 'D', time: '12:00', status: bi('登機中', 'BOARDING'), tone: 'boarding' },
-  { id: 'g3', flight: 'WBC 034', from: 'KOR', to: 'ITA', gate: 'B', time: '18:30', status: bi('準時', 'ON TIME'), tone: 'ontime' },
-  { id: 'g4', flight: 'P12 118', from: 'JPN', to: 'TPE', gate: 'B', time: '18:00', status: bi('延誤 · 復盤中', 'DELAYED'), tone: 'delayed' },
-];
 
 export default async function HomePage({ params }: { params: Promise<{ lang: Lang }> }) {
   const { lang } = await params;
@@ -49,13 +41,6 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Lan
         </div>
       </section>
 
-      {/* 航班動態看板 */}
-      <FlightStatusBoard
-        rows={SCHEDULE}
-        lang={lang}
-        title={bi('賽程動態看板', 'Game Status Board')}
-      />
-
       {/* 登機證示範 */}
       <section>
         <h2 className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-ink-muted">
@@ -66,11 +51,13 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Lan
             lang={lang}
             title={bi('2026 WBC 日本 vs. 委內瑞拉', '2026 WBC Japan vs. Venezuela')}
             subtitle={bi('戰術復盤 · 65 球限制下的牛棚銜接', 'Tactical review · bullpen sequencing under a 65-pitch limit')}
-            flightNo="WBC 026"
-            gate="C"
-            seat="QF"
+            fields={[
+              { label: UI.boardingPass.flight, value: 'WBC 026' },
+              { label: UI.boardingPass.gate, value: 'C', emphasis: true },
+              { label: UI.boardingPass.seat, value: 'QF', emphasis: true },
+              { label: UI.boardingPass.boarding, value: '19:00', align: 'right' },
+            ]}
             cabin={bi('專題 CASE STUDY', 'CASE STUDY')}
-            boardingTime="19:00"
             barcodeSeed="wbc2026-jpn-ven"
             route={{ from: 'VEN', to: 'JPN' }}
             stubBadge="26"
