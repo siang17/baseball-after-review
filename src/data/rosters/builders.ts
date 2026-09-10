@@ -209,10 +209,12 @@ export interface BatterInput {
    * 本職在 MLB」的球員會猜錯，需要在這裡明講。
    */
   leagueOverride?: Player['leagueOrigin'];
+  /** 真實所屬球團（登機證「母隊」欄位）。不傳就維持 null（顯示「—」）。 */
+  club?: Bilingual;
 }
 
 export function batter(input: BatterInput): Player {
-  const { id, teamCode, era, zh, en, jersey, battingOrder, positions, bats, throws, rosterClass, gate, realBatting, leagueOverride } = input;
+  const { id, teamCode, era, zh, en, jersey, battingOrder, positions, bats, throws, rosterClass, gate, realBatting, leagueOverride, club } = input;
   const battingStats = realBatting
     ? { g: 0, pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, sb: 0, bb: 0, so: 0, ...realBatting }
     : genBattingStats(id, positions);
@@ -226,7 +228,7 @@ export function batter(input: BatterInput): Player {
     positions,
     pitcherRole: null,
     bats, throws,
-    age: null, heightCm: null, weightKg: null, club: null,
+    age: null, heightCm: null, weightKg: null, club: club ?? null,
     leagueOrigin: leagueOverride ?? LEAGUE_ORIGIN_BY_TEAM[teamCode] ?? 'MLB',
     rosterClass,
     battingOrder,
@@ -259,10 +261,12 @@ export interface PitcherInput {
   realPitching?: RealPitchingLine;
   /** 真實所屬聯盟；不傳就沿用 `LEAGUE_ORIGIN_BY_TEAM` 依國家代表隊猜測的聯盟。見 BatterInput 同名欄位的說明。 */
   leagueOverride?: Player['leagueOrigin'];
+  /** 真實所屬球團（登機證「母隊」欄位）。不傳就維持 null（顯示「—」）。 */
+  club?: Bilingual;
 }
 
 export function pitcher(input: PitcherInput): Player {
-  const { id, teamCode, era, zh, en, jersey, role, throws, gate, realPitching, leagueOverride } = input;
+  const { id, teamCode, era, zh, en, jersey, role, throws, gate, realPitching, leagueOverride, club } = input;
   const rosterClass: RosterClass = role === 'SP' ? 'ROTATION' : role === 'CL' ? 'CLOSER' : 'BULLPEN';
   const pitchingStats = realPitching
     ? { g: 0, gs: 0, ip: 0, w: 0, l: 0, sv: 0, hld: 0, h: 0, er: 0, bb: 0, so: 0, ...realPitching }
@@ -276,7 +280,7 @@ export function pitcher(input: PitcherInput): Player {
     pitcherRole: role,
     bats: throws === 'S' ? 'R' : throws,
     throws,
-    age: null, heightCm: null, weightKg: null, club: null,
+    age: null, heightCm: null, weightKg: null, club: club ?? null,
     leagueOrigin: leagueOverride ?? LEAGUE_ORIGIN_BY_TEAM[teamCode] ?? 'MLB',
     rosterClass,
     battingOrder: null,

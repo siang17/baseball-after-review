@@ -21,6 +21,7 @@ const ERA = 2026;
 const sp1 = pitcher({
   id: '2026-jpn-sp1', teamCode: TEAM, era: ERA, zh: '藤平尚真', en: '藤平尚真', jersey: null,
   role: 'SP', throws: 'R', gate: TEAM,
+  club: bi('東北樂天金鷲', 'Tohoku Rakuten Golden Eagles'),
   realPitching: {
     era: 2.11, whip: 1.09, eraPlus: null, fip: 2.74, war: null,
     k9: 9.96, bb9: 3.02, avgVelocity: 94.4, velocityDeclinePer25: null,
@@ -33,6 +34,7 @@ const sp1 = pitcher({
 const sp2 = pitcher({
   id: '2026-jpn-sp2', teamCode: TEAM, era: ERA, zh: '伊藤大海', en: '伊藤大海', jersey: null,
   role: 'SP', throws: 'R', gate: TEAM,
+  club: bi('北海道日本火腿鬥士', 'Hokkaido Nippon-Ham Fighters'),
   realPitching: {
     era: 2.52, whip: 1.06, eraPlus: null, fip: 2.26, war: null,
     k9: 8.92, bb9: 1.33, avgVelocity: 92.9, velocityDeclinePer25: null,
@@ -45,6 +47,7 @@ const sp2 = pitcher({
 const sp3 = pitcher({
   id: '2026-jpn-sp3', teamCode: TEAM, era: ERA, zh: '金丸夢斗', en: '金丸夢斗', jersey: null,
   role: 'SP', throws: 'R', gate: TEAM,
+  club: bi('中日龍', 'Chunichi Dragons'),
   realPitching: {
     era: 2.61, whip: 1.09, eraPlus: null, fip: 3.02, war: null,
     k9: 7.26, bb9: 1.77, avgVelocity: 92.3, velocityDeclinePer25: null,
@@ -58,6 +61,7 @@ const sp3 = pitcher({
 const sp4 = pitcher({
   id: '2026-jpn-sp4', teamCode: TEAM, era: ERA, zh: '菊池雄星', en: '菊池雄星', jersey: null,
   role: 'SP', throws: 'L', gate: TEAM, leagueOverride: 'MLB',
+  club: bi('洛杉磯天使', 'Los Angeles Angels'),
   realPitching: {
     era: 3.99, whip: 1.42, eraPlus: null, fip: null, war: null,
     k9: 8.78, bb9: 3.74, avgVelocity: null, velocityDeclinePer25: null,
@@ -70,6 +74,7 @@ const sp4 = pitcher({
 const sp5 = pitcher({
   id: '2026-jpn-sp5', teamCode: TEAM, era: ERA, zh: '北山亘基', en: '北山亘基', jersey: null,
   role: 'SP', throws: 'R', gate: TEAM,
+  club: bi('北海道日本火腿鬥士', 'Hokkaido Nippon-Ham Fighters'),
   realPitching: {
     era: 1.63, whip: 1.05, eraPlus: null, fip: 2.41, war: null,
     k9: 8.64, bb9: 2.72, avgVelocity: 93.3, velocityDeclinePer25: null,
@@ -99,6 +104,7 @@ const cl1 = pitcher({ id: '2026-jpn-cl1', teamCode: TEAM, era: ERA, zh: '山本�
 const c1 = batter({
   id: '2026-jpn-c1', teamCode: TEAM, era: ERA, zh: '中村悠平', en: '中村悠平', jersey: null,
   battingOrder: 1, positions: ['C'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('東京養樂多燕子', 'Tokyo Yakult Swallows'),
   realBatting: {
     avg: 0.230, obp: 0.319, slg: 0.278, ops: 0.597,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: null, exitVelocity: null, sprintSpeed: null,
@@ -118,6 +124,7 @@ const c3 = batter({ id: '2026-jpn-c3', teamCode: TEAM, era: ERA, zh: '若月健�
 const if1 = batter({
   id: '2026-jpn-1b1', teamCode: TEAM, era: ERA, zh: '源田壯亮', en: '源田壯亮', jersey: null,
   battingOrder: 2, positions: ['1B'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('埼玉西武獅', 'Saitama Seibu Lions'),
   realBatting: {
     avg: 0.209, obp: 0.269, slg: 0.275, ops: 0.544,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: null, exitVelocity: null, sprintSpeed: null,
@@ -130,6 +137,7 @@ const if1 = batter({
 const if2 = batter({
   id: '2026-jpn-2b1', teamCode: TEAM, era: ERA, zh: '小園海斗', en: '小園海斗', jersey: null,
   battingOrder: 3, positions: ['2B'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('廣島東洋鯉魚', 'Hiroshima Toyo Carp'),
   realBatting: {
     avg: 0.309, obp: 0.365, slg: 0.388, ops: 0.753,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: null, exitVelocity: null, sprintSpeed: null,
@@ -142,6 +150,7 @@ const if2 = batter({
 const if3 = batter({
   id: '2026-jpn-3b1', teamCode: TEAM, era: ERA, zh: '牧秀悟', en: '牧秀悟', jersey: null,
   battingOrder: 4, positions: ['3B'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('橫濱DeNA灣星', 'Yokohama DeNA BayStars'),
   realBatting: {
     avg: 0.277, obp: 0.325, slg: 0.475, ops: 0.800,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: null, exitVelocity: null, sprintSpeed: null,
@@ -154,6 +163,7 @@ const if3 = batter({
 const if4 = batter({
   id: '2026-jpn-ss1', teamCode: TEAM, era: ERA, zh: '牧原大成', en: '牧原大成', jersey: null,
   battingOrder: 5, positions: ['SS'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('福岡軟銀鷹', 'Fukuoka SoftBank Hawks'),
   realBatting: {
     avg: 0.304, obp: 0.317, slg: 0.409, ops: 0.726,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: null, exitVelocity: null, sprintSpeed: null,
@@ -177,6 +187,7 @@ const if7 = batter({ id: '2026-jpn-3b2', teamCode: TEAM, era: ERA, zh: '佐藤�
 const of1 = batter({
   id: '2026-jpn-lf1', teamCode: TEAM, era: ERA, zh: '近藤健介', en: '近藤健介', jersey: null,
   battingOrder: 6, positions: ['LF'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('福岡軟銀鷹', 'Fukuoka SoftBank Hawks'),
   realBatting: {
     avg: 0.301, obp: 0.410, slg: 0.492, ops: 0.902,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: null, exitVelocity: null, sprintSpeed: null,
@@ -189,6 +200,7 @@ const of1 = batter({
 const of2 = batter({
   id: '2026-jpn-cf1', teamCode: TEAM, era: ERA, zh: '森下翔太', en: '森下翔太', jersey: null,
   battingOrder: 7, positions: ['CF'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('阪神虎', 'Hanshin Tigers'),
   realBatting: {
     avg: 0.275, obp: 0.350, slg: 0.463, ops: 0.813,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: null, exitVelocity: null, sprintSpeed: null,
@@ -203,6 +215,7 @@ const of3 = batter({
   id: '2026-jpn-rf1', teamCode: TEAM, era: ERA, zh: '吉田正尚', en: '吉田正尚', jersey: null,
   leagueOverride: 'MLB',
   battingOrder: 8, positions: ['RF'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('波士頓紅襪', 'Boston Red Sox'),
   realBatting: {
     avg: 0.266, obp: 0.307, slg: 0.388, ops: 0.695,
     wrcPlus: null, opsPlus: null, war: null, whiffPct: 0.154, exitVelocity: 90.2, sprintSpeed: null,
@@ -224,6 +237,7 @@ const dh1 = batter({
   id: '2026-jpn-dh1', teamCode: TEAM, era: ERA, zh: '大谷翔平', en: '大谷翔平', jersey: null,
   leagueOverride: 'MLB',
   battingOrder: 9, positions: ['DH'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  club: bi('洛杉磯道奇', 'Los Angeles Dodgers'),
   realBatting: {
     avg: 0.282, obp: 0.392, slg: 0.622, ops: 1.014,
     wrcPlus: 172, opsPlus: 172, war: 9.4, whiffPct: 0.334, exitVelocity: 94.9, sprintSpeed: 28.2,
