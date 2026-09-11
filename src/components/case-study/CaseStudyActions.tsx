@@ -34,10 +34,10 @@ export function CaseStudyActions({ lang }: { lang: Lang }) {
     );
   };
 
-  /** 預先設定 2024 中華隊 vs. 2026 日本隊的跨年代對決。 */
+  /** 預先設定 2024 委內瑞拉隊 vs. 2026 日本隊的跨年代對決——問「兩年前的委內瑞拉打得過這支日本隊嗎」。 */
   const startCrossEraMatchup = () => {
     setEraMode('2024vs2026');
-    setTeam('away', 'TPE');
+    setTeam('away', 'VEN');
     setTeam('home', 'JPN');
     setStep('CONFIRM');
     router.push(localePath(lang, '/matchup'));
@@ -79,13 +79,13 @@ export function CaseStudyActions({ lang }: { lang: Lang }) {
         <Sparkles size={18} className="text-navy" />
         <h3 className="mt-2 text-base font-bold text-ink">
           {lang === 'zh'
-            ? '跨年代對決：2024 中華隊 vs. 2026 日本隊'
-            : 'Cross-era: 2024 Chinese Taipei vs. 2026 Japan'}
+            ? '跨年代對決：2024 委內瑞拉隊 vs. 2026 日本隊'
+            : 'Cross-era: 2024 Venezuela vs. 2026 Japan'}
         </h3>
         <p className="mt-1 text-xs leading-relaxed text-ink-muted">
           {lang === 'zh'
-            ? '以 12 強冠軍中華隊對上這支日本隊，套用年代校正與 65 球規則後推演勝率。'
-            : 'Puts the Premier12 champions against this Japan roster with era adjustment and the 65-pitch rule applied.'}
+            ? '還沒拿下世界冠軍的 2024 委內瑞拉隊，對上兩年後被他們淘汰的這支日本隊，套用年代校正與 65 球規則後推演勝率。'
+            : 'Puts the not-yet-champion 2024 Venezuela roster against the very Japan team they would upset two years later, with era adjustment and the 65-pitch rule applied.'}
         </p>
         <span className="mt-3 flex items-center gap-1 text-xs font-bold text-navy">
           <PlaneTakeoff size={13} />

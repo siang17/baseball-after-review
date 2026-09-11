@@ -15,6 +15,7 @@ import type {
 /* 賽事                                                                */
 /* ------------------------------------------------------------------ */
 
+/** 範圍縮減為 4 隊：2024／2026 各自的日本、委內瑞拉。其餘隊伍暫不開放選取。 */
 export const TOURNAMENTS: Record<Era, Tournament> = {
   2024: {
     id: 'PREMIER12_2024',
@@ -22,7 +23,7 @@ export const TOURNAMENTS: Record<Era, Tournament> = {
     name: bi('2024 世界棒球 12 強賽', '2024 WBSC Premier12'),
     flightPrefix: 'P12',
     defaultPitchLimit: 65,
-    teamCodes: ['TPE', 'JPN', 'VEN', 'USA'],
+    teamCodes: ['JPN', 'VEN'],
   },
   2026: {
     id: 'WBC_2026',
@@ -30,7 +31,7 @@ export const TOURNAMENTS: Record<Era, Tournament> = {
     name: bi('2026 世界棒球經典賽', '2026 World Baseball Classic'),
     flightPrefix: 'WBC',
     defaultPitchLimit: 65,
-    teamCodes: ['JPN', 'VEN', 'USA', 'CAN', 'PUR', 'ITA', 'KOR', 'DOM'],
+    teamCodes: ['JPN', 'VEN'],
   },
 };
 
