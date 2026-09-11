@@ -69,6 +69,8 @@ function defender(spec: DefenderSpec, teamCode: TeamCode = 'JPN'): Player {
       whiffPct: null,
       exitVelocity: null,
       sprintSpeed: null,
+      vsLHP: null,
+      vsRHP: null,
     },
     pitching: null,
     fielding: {

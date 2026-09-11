@@ -76,6 +76,8 @@ function batter(
       whiffPct: stats.whiff,
       exitVelocity: null,
       sprintSpeed: stats.sprint,
+      vsLHP: null,
+      vsRHP: null,
     },
     pitching: null,
     fielding: {
@@ -145,6 +147,9 @@ function pitcher(
       bb9: stats.bb9,
       avgVelocity: stats.velo,
       velocityDeclinePer25: stats.decline,
+      pitches: null,
+      vsLHB: null,
+      vsRHB: null,
     },
     fielding: null,
     adjustment: null,
