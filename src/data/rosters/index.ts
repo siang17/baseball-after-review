@@ -1,30 +1,15 @@
 import { ROSTER_JPN_2024 } from './2024/jpn';
-import { ROSTER_TPE_2024 } from './2024/tpe';
-import { ROSTER_USA_2024 } from './2024/usa';
 import { ROSTER_VEN_2024 } from './2024/ven';
-import { ROSTER_CAN_2026 } from './2026/can';
-import { ROSTER_DOM_2026 } from './2026/dom';
-import { ROSTER_ITA_2026 } from './2026/ita';
 import { ROSTER_JPN_2026 } from './2026/jpn';
-import { ROSTER_KOR_2026 } from './2026/kor';
-import { ROSTER_PUR_2026 } from './2026/pur';
-import { ROSTER_USA_2026 } from './2026/usa';
 import { ROSTER_VEN_2026 } from './2026/ven';
 import type { Coach, Era, Player, Roster, TeamCode } from '@/types/baseball';
 
+/** 範圍縮減為 4 隊（2024／2026 各自的日本、委內瑞拉），其餘隊伍名單已移除。 */
 export const ALL_ROSTERS: Roster[] = [
-  ROSTER_TPE_2024,
   ROSTER_JPN_2024,
-  ROSTER_USA_2024,
   ROSTER_VEN_2024,
   ROSTER_JPN_2026,
   ROSTER_VEN_2026,
-  ROSTER_USA_2026,
-  ROSTER_CAN_2026,
-  ROSTER_PUR_2026,
-  ROSTER_ITA_2026,
-  ROSTER_KOR_2026,
-  ROSTER_DOM_2026,
 ];
 
 /* ------------------------------------------------------------------ */
