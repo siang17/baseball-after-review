@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Plane, Shield, Ticket } from 'lucide-react';
 import { Barcode, QrGlyph } from '@/components/ui/Barcode';
 import { CABIN_BY_CLASS, getTeam } from '@/lib/constants';
-import { UI } from '@/lib/i18n';
+import { bi, UI } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Bilingual, Lang, Player, RosterClass } from '@/types/baseball';
 
@@ -283,6 +283,80 @@ function PlayerCardTabs({
   );
 }
 
+/* ------------------------------------------------------------------ */
+/* 左右投／左右打拆分小表                                              */
+/* ------------------------------------------------------------------ */
+
+const SPLIT_TITLE_BATTING = bi('對戰左／右投手', 'Splits vs. Pitcher Handedness');
+const SPLIT_TITLE_PITCHING = bi('對戰左／右打者', 'Splits vs. Batter Handedness');
+const VS_LHP = bi('面對左投', 'vs LHP');
+const VS_RHP = bi('面對右投', 'vs RHP');
+const VS_LHB = bi('面對左打', 'vs LHB');
+const VS_RHB = bi('面對右打', 'vs RHB');
+const SPLIT_ROWS: Array<{ key: 'avg' | 'obp' | 'slg' | 'ops'; label: string }> = [
+  { key: 'avg', label: 'AVG' },
+  { key: 'obp', label: 'OBP' },
+  { key: 'slg', label: 'SLG' },
+  { key: 'ops', label: 'OPS' },
+];
+
+interface SplitLine {
+  avg: number | null;
+  obp: number | null;
+  slg: number | null;
+  ops: number | null;
+}
+
+/** 左右投／左右打拆分小表；查無資料時每一格顯示「—」，先把版面搭好等未來查證數字補上。 */
+function SplitTable({
+  lang,
+  title,
+  leftLabel,
+  rightLabel,
+  left,
+  right,
+}: {
+  lang: Lang;
+  title: Bilingual;
+  leftLabel: Bilingual;
+  rightLabel: Bilingual;
+  left: SplitLine | null;
+  right: SplitLine | null;
+}) {
+  const fmt = (v: number | null | undefined) => (v != null ? v.toFixed(3) : '—');
+  return (
+    <div className="space-y-1">
+      <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-ink-muted">
+        {title[lang]}
+      </div>
+      <table className="w-full border-collapse text-xs">
+        <thead>
+          <tr className="text-[9px] uppercase tracking-wide text-ink-muted">
+            <th className="w-10 text-left font-semibold">&nbsp;</th>
+            <th className="text-right font-semibold">{leftLabel[lang]}</th>
+            <th className="text-right font-semibold">{rightLabel[lang]}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {SPLIT_ROWS.map((row) => (
+            <tr key={row.key} className="border-t border-dashed border-line">
+              <td className="py-0.5 font-[family-name:var(--font-mono-ticket)] font-semibold text-ink-muted">
+                {row.label}
+              </td>
+              <td className="py-0.5 text-right font-[family-name:var(--font-mono-ticket)] tabular-nums text-ink">
+                {fmt(left?.[row.key])}
+              </td>
+              <td className="py-0.5 text-right font-[family-name:var(--font-mono-ticket)] tabular-nums text-ink">
+                {fmt(right?.[row.key])}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /** 「球員數據」分頁內容：打投／聯盟／年齡／身高體重等履歷欄位，缺值一律顯示「—」；下方接統計標籤。 */
 function PlayerProfileTab({
   player,
@@ -323,6 +397,27 @@ function PlayerProfileTab({
           </div>
         ))}
       </dl>
+
+      {player.batting && (
+        <SplitTable
+          lang={lang}
+          title={SPLIT_TITLE_BATTING}
+          leftLabel={VS_LHP}
+          rightLabel={VS_RHP}
+          left={player.batting.vsLHP}
+          right={player.batting.vsRHP}
+        />
+      )}
+      {player.pitching && (
+        <SplitTable
+          lang={lang}
+          title={SPLIT_TITLE_PITCHING}
+          leftLabel={VS_LHB}
+          rightLabel={VS_RHB}
+          left={player.pitching.vsLHB}
+          right={player.pitching.vsRHB}
+        />
+      )}
 
       {player.scoutingNote && (
         <p className="text-xs leading-relaxed text-ink-soft">{player.scoutingNote[lang]}</p>

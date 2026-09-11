@@ -10,6 +10,7 @@
 import { bi } from '@/lib/i18n';
 import { hashString } from '@/lib/utils';
 import type {
+  BattingSplitLine,
   BattingStats,
   Bilingual,
   Coach,
@@ -19,6 +20,7 @@ import type {
   Handedness,
   Manager,
   PitcherRole,
+  PitchingSplitLine,
   PitchingStats,
   Player,
   Position,
@@ -72,6 +74,8 @@ function genBattingStats(id: string, positions: Position[]): BattingStats {
     ops: round3(obp + slg),
     wrcPlus, opsPlus: wrcPlus, war,
     whiffPct, exitVelocity: null, sprintSpeed,
+    // 示範資料暫不生成 split，等待未來查證後的真實數字。
+    vsLHP: null, vsRHP: null,
   };
 }
 
@@ -130,6 +134,8 @@ function genPitchingStats(id: string, role: PitcherRole): PitchingStats {
   return {
     g: 0, gs: 0, ip: 0, w: 0, l: 0, sv: 0, hld: 0, h: 0, er: 0, bb: 0, so: 0,
     era, whip, eraPlus: null, fip, war: null, k9, bb9, avgVelocity, velocityDeclinePer25,
+    // 示範資料暫無球季用球數與 split，等待未來查證後的真實數字。
+    pitches: null, vsLHB: null, vsRHB: null,
   };
 }
 
@@ -167,6 +173,13 @@ export interface RealBattingLine {
   whiffPct: number | null;
   exitVelocity: number | null;
   sprintSpeed: number | null;
+  /** 安打數；未提供時沿用未驗證的計數（畫面上不會顯示為標籤，見 RostersBrowser 的 >0 判斷）。 */
+  h?: number;
+  /** 三振數；未提供時同上。 */
+  so?: number;
+  /** 面對左投／右投的拆分數據；尚未查證前不提供，畫面顯示「—」。 */
+  vsLHP?: BattingSplitLine | null;
+  vsRHP?: BattingSplitLine | null;
 }
 
 /** 真實球季投球數據——只有查證過的欄位；查不到的欄位一律 null，不落回示範亂數值。 */
@@ -180,6 +193,13 @@ export interface RealPitchingLine {
   bb9: number | null;
   avgVelocity: number | null;
   velocityDeclinePer25: number | null;
+  /** 三振數；未提供時沿用未驗證的計數。 */
+  so?: number;
+  /** 該球季用球數總計；查無來源就維持 null。 */
+  pitches?: number | null;
+  /** 面對左打／右打的被打擊拆分數據；尚未查證前不提供，畫面顯示「—」。 */
+  vsLHB?: PitchingSplitLine | null;
+  vsRHB?: PitchingSplitLine | null;
 }
 
 export interface BatterInput {
@@ -216,7 +236,7 @@ export interface BatterInput {
 export function batter(input: BatterInput): Player {
   const { id, teamCode, era, zh, en, jersey, battingOrder, positions, bats, throws, rosterClass, gate, realBatting, leagueOverride, club } = input;
   const battingStats = realBatting
-    ? { g: 0, pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, sb: 0, bb: 0, so: 0, ...realBatting }
+    ? { g: 0, pa: 0, ab: 0, h: 0, hr: 0, rbi: 0, sb: 0, bb: 0, so: 0, vsLHP: null, vsRHP: null, ...realBatting }
     : genBattingStats(id, positions);
   const primaryPosition = positions[0];
   const isPureDh = positions.length === 1 && positions[0] === 'DH';
@@ -269,7 +289,7 @@ export function pitcher(input: PitcherInput): Player {
   const { id, teamCode, era, zh, en, jersey, role, throws, gate, realPitching, leagueOverride, club } = input;
   const rosterClass: RosterClass = role === 'SP' ? 'ROTATION' : role === 'CL' ? 'CLOSER' : 'BULLPEN';
   const pitchingStats = realPitching
-    ? { g: 0, gs: 0, ip: 0, w: 0, l: 0, sv: 0, hld: 0, h: 0, er: 0, bb: 0, so: 0, ...realPitching }
+    ? { g: 0, gs: 0, ip: 0, w: 0, l: 0, sv: 0, hld: 0, h: 0, er: 0, bb: 0, so: 0, pitches: null, vsLHB: null, vsRHB: null, ...realPitching }
     : genPitchingStats(id, role);
 
   return {

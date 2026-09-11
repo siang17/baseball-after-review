@@ -146,6 +146,7 @@ export const UI = {
     changeEra: bi('切換年份', 'Change year'),
     changeTeam: bi('切換隊伍', 'Change team'),
     coachingStaff: bi('教練團', 'Coaching Staff'),
+    batters: bi('打者名單', 'Batters'),
     lineup: bi('先發九棒', 'Starting Lineup'),
     bench: bi('替補', 'Bench'),
     rotation: bi('先發輪值', 'Rotation'),

@@ -70,6 +70,24 @@ export type RosterClass =
 /** 聯盟來源，用於 NPB / KBO / CPBL → MLB 的數據校正。 */
 export type LeagueOrigin = 'MLB' | 'MiLB' | 'NPB' | 'KBO' | 'CPBL' | 'LMB' | 'OTHER';
 
+/** 對戰左／右投（或左／右打）拆分數據；查無資料時整組為 null，個別欄位也可能各自為 null。 */
+export interface BattingSplitLine {
+  pa: number | null;
+  avg: number | null;
+  obp: number | null;
+  slg: number | null;
+  ops: number | null;
+}
+
+/** 投手面對左／右打者的被打擊拆分數據；查無資料時整組為 null。 */
+export interface PitchingSplitLine {
+  bf: number | null;
+  avg: number | null;
+  obp: number | null;
+  slg: number | null;
+  ops: number | null;
+}
+
 export interface BattingStats {
   g: number;
   pa: number;
@@ -94,6 +112,10 @@ export interface BattingStats {
   exitVelocity: number | null;
   /** 離壘速度 / 一壘衝刺秒數，散佈圖常用軸。 */
   sprintSpeed: number | null;
+  /** 面對左投的拆分數據。 */
+  vsLHP: BattingSplitLine | null;
+  /** 面對右投的拆分數據。 */
+  vsRHP: BattingSplitLine | null;
 }
 
 export interface PitchingStats {
@@ -119,6 +141,12 @@ export interface PitchingStats {
   avgVelocity: number | null;
   /** 用球數每增加 25 球的球速衰退幅度 (mph)，用於 TTOP / 用球數散佈圖。 */
   velocityDeclinePer25: number | null;
+  /** 該球季用球數總計（非單場，單場用球數只存在於逐球模擬 HUD）。 */
+  pitches: number | null;
+  /** 面對左打者的被打擊拆分數據。 */
+  vsLHB: PitchingSplitLine | null;
+  /** 面對右打者的被打擊拆分數據。 */
+  vsRHB: PitchingSplitLine | null;
 }
 
 /**

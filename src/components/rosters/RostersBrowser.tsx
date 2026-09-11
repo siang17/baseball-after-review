@@ -98,15 +98,38 @@ function PlayerGrid({ players }: { players: Player[] }) {
         <PlayerBoardingPass key={player.id} player={player} lang={lang}>
           <div className="flex flex-wrap gap-2">
             {/* OPS/WHIP 是打擊／投球資料裡唯二一定有值的欄位（schema 不可為 null），
-                所以放最前面：真實球季資料只查得到基本打擊率三圍時，這裡才不會整排空白。 */}
+                所以放最前面：真實球季資料只查得到基本打擊率三圍時，這裡才不會整排空白。
+                安打／三振是計數型數據，示範球員與尚未補上真實計數的球員都固定是 0，
+                所以只在 >0 時才顯示標籤，避免看起來像「真的打了 0 支安打」。 */}
             {player.batting && (
               <BaggageTag lang={lang} label={bi('OPS', 'OPS')} value={player.batting.ops.toFixed(3)} />
             )}
             {player.batting?.avg != null && (
               <BaggageTag lang={lang} label={bi('打擊率', 'AVG')} value={player.batting.avg.toFixed(3)} />
             )}
+            {player.batting && (
+              <BaggageTag lang={lang} label={bi('上壘率', 'OBP')} value={player.batting.obp.toFixed(3)} />
+            )}
+            {player.batting && (
+              <BaggageTag lang={lang} label={bi('長打率', 'SLG')} value={player.batting.slg.toFixed(3)} />
+            )}
             {player.batting?.wrcPlus != null && (
               <BaggageTag lang={lang} label={bi('wRC+', 'wRC+')} value={player.batting.wrcPlus} />
+            )}
+            {player.batting?.war != null && (
+              <BaggageTag lang={lang} label={bi('WAR', 'WAR')} value={player.batting.war.toFixed(1)} />
+            )}
+            {player.batting && player.batting.h > 0 && (
+              <BaggageTag lang={lang} label={bi('安打', 'H')} value={player.batting.h} />
+            )}
+            {player.batting && player.batting.so > 0 && (
+              <BaggageTag lang={lang} label={bi('三振', 'K')} value={player.batting.so} />
+            )}
+            {player.batting?.whiffPct != null && (
+              <BaggageTag lang={lang} label={bi('揮空率', 'Whiff%')} value={`${(player.batting.whiffPct * 100).toFixed(1)}%`} />
+            )}
+            {player.batting?.sprintSpeed != null && (
+              <BaggageTag lang={lang} label={bi('離壘速度', 'Sprint Speed')} value={player.batting.sprintSpeed.toFixed(1)} unit="ft/s" />
             )}
             {player.fielding?.uzr150 != null && (
               <BaggageTag
@@ -116,14 +139,34 @@ function PlayerGrid({ players }: { players: Player[] }) {
                 tone={player.fielding.uzr150 >= 0 ? 'good' : 'danger'}
               />
             )}
+            {player.fielding?.attendanceRate != null && (
+              <BaggageTag lang={lang} label={bi('出勤率', 'Attendance')} value={`${(player.fielding.attendanceRate * 100).toFixed(0)}%`} />
+            )}
             {player.pitching && (
               <BaggageTag lang={lang} label={bi('WHIP', 'WHIP')} value={player.pitching.whip.toFixed(2)} />
             )}
             {player.pitching?.era != null && (
               <BaggageTag lang={lang} label={bi('防禦率', 'ERA')} value={player.pitching.era.toFixed(2)} />
             )}
+            {player.pitching?.war != null && (
+              <BaggageTag lang={lang} label={bi('WAR', 'WAR')} value={player.pitching.war.toFixed(1)} />
+            )}
             {player.pitching?.k9 != null && (
               <BaggageTag lang={lang} label={bi('K/9', 'K/9')} value={player.pitching.k9.toFixed(1)} />
+            )}
+            {player.pitching && player.pitching.so > 0 && (
+              <BaggageTag lang={lang} label={bi('三振', 'K')} value={player.pitching.so} />
+            )}
+            {player.pitching?.pitches != null && (
+              <BaggageTag lang={lang} label={bi('用球數', 'Pitches')} value={player.pitching.pitches} />
+            )}
+            {player.pitching?.velocityDeclinePer25 != null && (
+              <BaggageTag
+                lang={lang}
+                label={bi('球速下滑率', 'Velo Decline')}
+                value={player.pitching.velocityDeclinePer25.toFixed(2)}
+                unit="mph/25p"
+              />
             )}
           </div>
         </PlayerBoardingPass>
@@ -233,12 +276,8 @@ function RosterDetail({ era, teamCode, onBack }: { era: Era; teamCode: TeamCode;
         <CoachingStaffCard roster={roster} />
       </Section>
 
-      <Section title={UI.rosters.lineup[lang]}>
-        <PlayerGrid players={roster.lineup} />
-      </Section>
-
-      <Section title={UI.rosters.bench[lang]}>
-        <PlayerGrid players={roster.bench} />
+      <Section title={UI.rosters.batters[lang]}>
+        <PlayerGrid players={[...roster.lineup, ...roster.bench]} />
       </Section>
 
       <Section title={UI.rosters.rotation[lang]}>
