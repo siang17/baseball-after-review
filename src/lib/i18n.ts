@@ -94,7 +94,6 @@ export const UI = {
     batsThrows: bi('打／投', 'Bats/Throws'),
     league: bi('聯盟', 'League'),
     age: bi('年齡', 'Age'),
-    heightWeight: bi('身高體重', 'Ht/Wt'),
   },
   matchup: {
     title: bi('夢幻對決訂位', 'Matchup Booking'),
@@ -175,6 +174,8 @@ export const UI = {
     currentPitcher: bi('目前投手', 'On the Mound'),
     prevPitch: bi('上一球', 'Prev pitch'),
     nextPitch: bi('下一球', 'Next pitch'),
+    play: bi('自動播放', 'Auto-play'),
+    pause: bi('暫停', 'Pause'),
     decisionPoints: bi('調度決策點', 'Decision Points'),
     jumpToDecision: bi('跳至決策點', 'Jump to decision'),
     noDecisionPoints: bi('這場比賽沒有偵測到高槓桿調度時刻。', 'No high-leverage decision moments detected in this game.'),

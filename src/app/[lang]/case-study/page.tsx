@@ -25,7 +25,6 @@ import {
 } from '@/data/case-studies/wbc2026-jpn-ven';
 import { DEMO_GAME_REVIEW, REAL_RESULT } from '@/data/games/wbc2026-jpn-ven';
 import { playerById, rosterFor } from '@/data/rosters';
-import { DEMO_PLAYERS } from '@/data/rosters/demoPlayers';
 import { createPitchLimitConfig } from '@/lib/constants';
 import { UI, bi } from '@/lib/i18n';
 import { deltaForSide } from '@/lib/sabermetrics';
@@ -84,12 +83,7 @@ function computeLineScore(halfInnings: HalfInningRuns[]): Array<{ inning: number
 /* 球員查找                                                            */
 /* ------------------------------------------------------------------ */
 
-/**
- * 節奏控制／牛棚銜接兩節仍引用 `demoPlayers.ts` 的舊示範球員 id（jpn-sp/ven-sp/jpn-cl），
- * 遺珠與守備論證兩節已換成 `src/data/rosters` 的真實 2026 名單，因此兩邊都要能查得到。
- */
-const resolvePlayer = (id: string): Player | null =>
-  playerById(id) ?? DEMO_PLAYERS.find((p) => p.id === id) ?? null;
+const resolvePlayer = (id: string): Player | null => playerById(id);
 
 /** 真實守位/守備分項用來論證「守備範圍 vs. 低失誤」的日本隊守備核心（捕手/游擊/三壘/中外野）。 */
 const JPN_DEFENSIVE_CORE_IDS = ['2026-jpn-c1', '2026-jpn-ss1', '2026-jpn-3b1', '2026-jpn-cf1'];
@@ -264,8 +258,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
 
         <p className="mt-3 rounded-lg border border-alert/40 bg-alert-soft px-3 py-2 text-xs leading-relaxed text-alert">
           {lang === 'zh'
-            ? '⚠️ 上方「真實結果」已查證，但這頁其餘內容（登機證上的「總教練模式結果」、逐局比分、逐球內容、決策節點）都是假設日本總教練在七局下做了另一種調度決定的「總教練模式」情境模擬，不是真實發生的事。「球員遺珠評估」與「日本隊守備論證」兩節使用 2026 日本隊真實名單與真實預測遺珠，守備分項本身仍是示範數字，不可作為真實賽事結論引用。'
-            : '⚠️ The "Real result" above is verified. Everything else on this page — the "manager mode result" on the boarding pass, the inning-by-inning score, pitch-by-pitch content, and decision points — is a simulated "manager mode" scenario imagining Japan’s manager making a different 7th-inning call. It did not really happen. The "Roster Snubs" and "Japan Defense Argument" sections use the real 2026 Japan roster and real predicted snubs, but the defensive splits themselves are still illustrative placeholder numbers.'}
+            ? '⚠️ 上方「真實結果」已查證，但這頁其餘內容（登機證上的「總教練模式結果」、逐局比分、逐球內容、決策節點）都是假設日本總教練在七局下做了另一種調度決定的「總教練模式」情境模擬，不是真實發生的事。「球員遺珠評估」與「日本隊守備論證」兩節使用 2026 日本隊真實名單與真實預測遺珠；守備分項（UZR/DRS/OAA）目前查無可信來源，因此以說明取代虛構數字。'
+            : '⚠️ The "Real result" above is verified. Everything else on this page — the "manager mode result" on the boarding pass, the inning-by-inning score, pitch-by-pitch content, and decision points — is a simulated "manager mode" scenario imagining Japan’s manager making a different 7th-inning call. It did not really happen. The "Roster Snubs" and "Japan Defense Argument" sections use the real 2026 Japan roster and real predicted snubs; defensive components (UZR/DRS/OAA) have no verified source yet, so a note stands in for invented numbers.'}
         </p>
       </section>
 

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import dynamic from 'next/dynamic';
-import { ChevronLeft, ChevronRight, PlaneTakeoff, RefreshCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Pause, PlaneTakeoff, Play, RefreshCcw } from 'lucide-react';
 import { CrucialPlayList } from '@/components/analysis/CrucialPlayAlert';
 import { WinProbabilityChart } from '@/components/analysis/LazyCharts';
 import { BaseRunnerDiagram } from '@/components/replay/BaseRunnerDiagram';
@@ -315,6 +315,10 @@ function ReviewStep({
   const lang = useLang();
   const cursor = useReplayStore((s) => s.cursor);
   const setCursor = useReplayStore((s) => s.setCursor);
+  const isPlaying = useReplayStore((s) => s.isPlaying);
+  const setPlaying = useReplayStore((s) => s.setPlaying);
+  const playbackSpeed = useReplayStore((s) => s.playbackSpeed);
+  const setSpeed = useReplayStore((s) => s.setSpeed);
   const managerMode = useReplayStore((s) => s.managerMode);
   const setManagerEnabled = useReplayStore((s) => s.setManagerEnabled);
   const activeDecision = useReplayStore((s) => s.activeDecision);
@@ -348,6 +352,22 @@ function ReviewStep({
 
   const clampedCursor = Math.min(cursor, pitches.length - 1);
   const pitch = pitches[clampedCursor];
+
+  // 自動播放：每顆球間隔依 playbackSpeed 縮放，遇到決策彈窗（activeDecision）或播到最後一球就自動暫停。
+  React.useEffect(() => {
+    if (!isPlaying) return;
+    if (activeDecision) {
+      setPlaying(false);
+      return;
+    }
+    if (clampedCursor >= pitches.length - 1) {
+      setPlaying(false);
+      return;
+    }
+    const id = setTimeout(() => setCursor(clampedCursor + 1), 1800 / playbackSpeed);
+    return () => clearTimeout(id);
+  }, [isPlaying, activeDecision, clampedCursor, pitches.length, playbackSpeed, setCursor, setPlaying]);
+
   const state = React.useMemo(() => matchStateFromPitch(pitch, review), [pitch, review]);
   const pitcher = React.useMemo(() => playerById(pitch.pitcherId), [pitch.pitcherId]);
   const batter = React.useMemo(() => playerById(pitch.batterId), [pitch.batterId]);
@@ -400,6 +420,35 @@ function ReviewStep({
           {UI.replay.nextPitch[lang]}
           <ChevronRight size={14} />
         </button>
+
+        <button
+          type="button"
+          onClick={() => setPlaying(!isPlaying)}
+          disabled={!isPlaying && clampedCursor === pitches.length - 1}
+          className={cn(
+            'flex items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-bold disabled:opacity-40',
+            isPlaying ? 'border-plum bg-plum text-white' : 'border-line text-ink',
+          )}
+        >
+          {isPlaying ? <Pause size={14} /> : <Play size={14} />}
+          {isPlaying ? UI.replay.pause[lang] : UI.replay.play[lang]}
+        </button>
+
+        <div className="flex items-center gap-1 rounded-full border border-line px-1.5 py-1">
+          {([0.5, 1, 2, 4] as const).map((speed) => (
+            <button
+              key={speed}
+              type="button"
+              onClick={() => setSpeed(speed)}
+              className={cn(
+                'rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums transition',
+                playbackSpeed === speed ? 'bg-navy text-white' : 'text-ink-muted hover:text-ink',
+              )}
+            >
+              {speed}x
+            </button>
+          ))}
+        </div>
 
         <button
           type="button"
