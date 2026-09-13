@@ -72,20 +72,24 @@ export type LeagueOrigin = 'MLB' | 'MiLB' | 'NPB' | 'KBO' | 'CPBL' | 'LMB' | 'OT
 
 /** 對戰左／右投（或左／右打）拆分數據；查無資料時整組為 null，個別欄位也可能各自為 null。 */
 export interface BattingSplitLine {
+  /** 來源標記的樣本分母，單位依來源而定（可能是出賽場次而非嚴格打席數），僅供參考，UI 不顯示。 */
   pa: number | null;
   avg: number | null;
   obp: number | null;
   slg: number | null;
   ops: number | null;
+  hr: number | null;
 }
 
 /** 投手面對左／右打者的被打擊拆分數據；查無資料時整組為 null。 */
 export interface PitchingSplitLine {
+  /** 來源標記的樣本分母，單位依來源而定（可能是被打局數而非嚴格打席數），僅供參考，UI 不顯示。 */
   bf: number | null;
   avg: number | null;
   obp: number | null;
   slg: number | null;
   ops: number | null;
+  hr: number | null;
 }
 
 export interface BattingStats {

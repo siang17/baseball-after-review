@@ -173,8 +173,12 @@ export interface RealBattingLine {
   whiffPct: number | null;
   exitVelocity: number | null;
   sprintSpeed: number | null;
+  /** 出賽場次；未提供時沿用未驗證的計數。 */
+  g?: number;
   /** 安打數；未提供時沿用未驗證的計數（畫面上不會顯示為標籤，見 RostersBrowser 的 >0 判斷）。 */
   h?: number;
+  /** 全壘打數；未提供時同上。 */
+  hr?: number;
   /** 三振數；未提供時同上。 */
   so?: number;
   /** 面對左投／右投的拆分數據；尚未查證前不提供，畫面顯示「—」。 */
@@ -193,6 +197,10 @@ export interface RealPitchingLine {
   bb9: number | null;
   avgVelocity: number | null;
   velocityDeclinePer25: number | null;
+  /** 出賽場次；未提供時沿用未驗證的計數。 */
+  g?: number;
+  /** 投球局數，採棒球慣例記法（.1＝⅓局、.2＝⅔局，例如 150.1 代表 150⅓ 局）；未提供時沿用未驗證的計數。 */
+  ip?: number;
   /** 三振數；未提供時沿用未驗證的計數。 */
   so?: number;
   /** 該球季用球數總計；查無來源就維持 null。 */

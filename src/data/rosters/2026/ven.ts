@@ -1,6 +1,9 @@
-// ⚠️ 示範資料：先發輪值/牛棚分工、棒次、守位細節為示範推估；先發九棒＋先發輪值
-// 共 14 人的統計數字已換成查證過的 2025 球季真實數據（見各自的來源註解），
-// 其餘替補／牛棚球員仍是決定性生成的示範值，詳見 builders.ts 開頭說明。
+// ⚠️ 示範資料：先發輪值/牛棚分工、棒次、守位細節為示範推估，詳見 builders.ts 開頭說明。
+// 全隊 30 位球員（含替補、牛棚）已套用使用者提供的試算表「選手名冊 數據分析.xlsx」
+// （2026-09-12）2025 真實球季數據為準；試算表沒有涵蓋的進階欄位（wRC+/WAR/平均擊球初速/
+// 離壘速度/FIP/平均球速）若先前已由網路查證取得且與試算表不衝突，予以保留，
+// 否則維持 null，不臆測。K/9 由試算表的奪三振數與局數換算得出。
+// José Álvarez、Ricardo Sánchez 兩人試算表未提供任何數字，維持先前資料／示範值不動。
 
 import { bi } from '@/lib/i18n';
 import { batter, coach, manager, pitcher } from '@/data/rosters/builders';
@@ -16,7 +19,7 @@ const ERA = 2026;
 // José Álvarez：已知左投（MLB 生涯多年為左投後援），throws 設為 L。
 // 2025 年效力墨西哥聯盟（LMB）Toros de Tijuana，未在 MLB/小聯盟出賽：
 // 53 場（後援）、43.0 局、2 勝 1 敗、ERA 1.88、WHIP 1.28、K/9 約 7.7、BB/9 約 3.3
-// （37 K / 16 BB）。查無球速/FIP/WAR（LMB 未公開對應數字）。
+// （37 K / 16 BB）。查無球速/FIP/WAR（LMB 未公開對應數字）。試算表未提供他的數字，維持不動。
 // 來源：lmb.com.mx/jugador/501625（官方）＋ en.wikipedia.org/wiki/José_Álvarez_(baseball,_born_1989)。
 const sp1 = pitcher({
   id: '2026-ven-sp1', teamCode: TEAM, era: ERA, zh: 'José Álvarez', en: 'José Álvarez', jersey: null,
@@ -28,107 +31,255 @@ const sp1 = pitcher({
     k9: 7.7, bb9: 3.3, avgVelocity: null, velocityDeclinePer25: null,
   },
 });
-// Luinder Ávila 2025 年球季：主力在 3A Omaha（皇家隊系統），8/13 首次升上大聯盟。
-// 這裡套用他大聯盟這段的數據（樣本小，僅 14 局）：13 場（後援）、14.0 局、
-// 1 勝 1 敗、ERA 1.29、WHIP 0.93、K/9 10.3、BB/9 3.9（16 K / 6 BB）；
-// 主要球種四縫線／伸卡球均速約 95.8 mph。3A 部分：10 場（9 場先發）、
-// 44.1 局、2 勝 2 敗、ERA 4.67，未套入（app 一位球員只存一組數據）。
-// 來源：baseballsavant.mlb.com/savant-player/luinder-avila-679883（Statcast）、
-// espn.com/mlb/player/stats/_/id/5201985/luinder-avila。
+// ERA/WHIP 與 G/IP/SO/用球數/split 來源：選手名冊 數據分析.xlsx（K/9 由 SO/IP 重新換算，
+// 與先前查證的 10.3 一致）；BB9/平均球速沿用先前 Baseball Savant 查證但試算表未涵蓋的數字。
 const sp2 = pitcher({
   id: '2026-ven-sp2', teamCode: TEAM, era: ERA, zh: 'Luinder Ávila', en: 'Luinder Ávila', jersey: null,
   role: 'SP', throws: 'R', gate: TEAM,
   club: bi('堪薩斯市皇家', 'Kansas City Royals'),
   realPitching: {
     era: 1.29, whip: 0.93, eraPlus: null, fip: null, war: null,
-    k9: 10.3, bb9: 3.9, avgVelocity: 95.8, velocityDeclinePer25: null,
+    k9: 10.29, bb9: 3.9, avgVelocity: 95.8, velocityDeclinePer25: null,
+    g: 13, ip: 14.0, so: 16, pitches: 218,
+    vsLHB: { bf: 6.2, avg: 0.087, obp: null, slg: null, ops: null, hr: 0 },
+    vsRHB: { bf: 7.1, avg: 0.192, obp: null, slg: null, ops: null, hr: 0 },
   },
 });
-// Eduard Bazardo 2025 年 MLB 西雅圖水手隊（全季後援）：73 場、78.2 局、5 勝 0 敗、
-// ERA 2.52、WHIP 1.02、K/9 9.4、BB/9 3.1（82 K / 27 BB）、FIP 3.64、fWAR 0.5、
-// 主力伸卡球均速約 95.5 mph。
-// 來源：baseballsavant.mlb.com/savant-player/eduard-bazardo-660825（Statcast）、
-// fangraphs.com/players/eduard-bazardo/20997/stats/pitching。
+// ERA/WHIP 與 G/IP/SO/用球數/split 來源：選手名冊 數據分析.xlsx；
+// FIP/fWAR/平均球速沿用先前 FanGraphs／Baseball Savant 查證但試算表未涵蓋的數字。
 const sp3 = pitcher({
   id: '2026-ven-sp3', teamCode: TEAM, era: ERA, zh: 'Eduard Bazardo', en: 'Eduard Bazardo', jersey: null,
   role: 'SP', throws: 'R', gate: TEAM,
   club: bi('西雅圖水手', 'Seattle Mariners'),
   realPitching: {
     era: 2.52, whip: 1.02, eraPlus: null, fip: 3.64, war: 0.5,
-    k9: 9.4, bb9: 3.1, avgVelocity: 95.5, velocityDeclinePer25: null,
+    k9: 9.38, bb9: 3.1, avgVelocity: 95.5, velocityDeclinePer25: null,
+    g: 73, ip: 78.2, so: 82, pitches: 1224,
+    vsLHB: { bf: 33.2, avg: 0.220, obp: null, slg: null, ops: null, hr: 5 },
+    vsRHB: { bf: 45, avg: 0.166, obp: null, slg: null, ops: null, hr: 4 },
   },
 });
-// José Buttó 2025 年球季（賽季中交易，7/30 由大都會交易到巨人隊，兩隊皆為後援）：
-// 合計 55 場、67.0 局、5 勝 3 敗、ERA 3.90、WHIP 1.40、K/9 約 7.8、BB/9 約 4.3
-// （58 K / 32 BB）、FIP 3.70、fWAR 0.5、均速約 95.0 mph。
-// 來源：baseballsavant.mlb.com/savant-player/jose-butto-676130（Statcast）、
-// mccoveychronicles.com（巨人隊分段數據）。
+// ERA/WHIP 與 G/IP/SO/用球數/split 來源：選手名冊 數據分析.xlsx（賽季中交易，7/30 由大都會
+// 交易到巨人隊，試算表「NYM/SF」與先前查證的交易紀錄一致）；FIP/fWAR/平均球速沿用先前查證但
+// 試算表未涵蓋的數字。
 const sp4 = pitcher({
   id: '2026-ven-sp4', teamCode: TEAM, era: ERA, zh: 'José Buttó', en: 'José Buttó', jersey: null,
   role: 'SP', throws: 'R', gate: TEAM,
   club: bi('舊金山巨人（賽季中交易，原紐約大都會）', 'San Francisco Giants (traded mid-season from the NY Mets)'),
   realPitching: {
     era: 3.90, whip: 1.40, eraPlus: null, fip: 3.70, war: 0.5,
-    k9: 7.8, bb9: 4.3, avgVelocity: 95.0, velocityDeclinePer25: null,
+    k9: 7.79, bb9: 4.3, avgVelocity: 95.0, velocityDeclinePer25: null,
+    g: 55, ip: 67.0, so: 58, pitches: 1098,
+    vsLHB: { bf: 28.1, avg: 0.257, obp: null, slg: null, ops: null, hr: 2 },
+    vsRHB: { bf: 38.2, avg: 0.255, obp: null, slg: null, ops: null, hr: 2 },
   },
 });
-// ⚠️ Enmanuel De Jesús 2025 年效力韓國 KBO 聯盟 KT Wiz（先發）：32 場、30 場先發、
-// 163⅔ 局、9 勝 9 敗、ERA 3.96、165 K——這幾項已查證（來源：
-// en.wikipedia.org/wiki/Enmanuel_De_Jesus、mlbtraderumors.com 簽約報導）。
-// 但查不到可信的保送數，WHIP/K9/BB9 因此無法換算，這裡維持決定性生成的示範值，
-// 不半套真實數字進去。
-const sp5 = pitcher({ id: '2026-ven-sp5', teamCode: TEAM, era: ERA, zh: 'Enmanuel De Jesús', en: 'Enmanuel De Jesús', jersey: null, role: 'SP', throws: 'R', gate: TEAM });
+// Enmanuel De Jesús：試算表標記為左投，throws 改為 L（原先為未查證的預設猜測）。
+// 2025 年效力韓國 KBO 聯盟 KT Wiz（先發）。先前查無可信的保送數，
+// WHIP/K9/BB9 因此無法換算；使用者提供的試算表補上了 WHIP 與奪三振數，K/9 據此換算，
+// BB9 仍查無可信數字維持 null。
+// 來源：選手名冊 數據分析.xlsx；G/IP/ERA/SO 與先前查證的 en.wikipedia.org/wiki/Enmanuel_De_Jesus
+// 一致。
+const sp5 = pitcher({
+  id: '2026-ven-sp5', teamCode: TEAM, era: ERA, zh: 'Enmanuel De Jesús', en: 'Enmanuel De Jesús', jersey: null,
+  role: 'SP', throws: 'L', gate: TEAM, leagueOverride: 'KBO',
+  club: bi('KT巫師（韓國職棒）', 'KT Wiz (KBO)'),
+  realPitching: {
+    era: 3.96, whip: 1.33, eraPlus: null, fip: null, war: null,
+    k9: 9.07, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 32, ip: 163.2, so: 165, pitches: 2716,
+    vsLHB: null, vsRHB: null,
+  },
+});
 
-// Jhonathan Díaz：已知左投，throws 設為 L。
-const rp1 = pitcher({ id: '2026-ven-rp1', teamCode: TEAM, era: ERA, zh: 'Jhonathan Díaz', en: 'Jhonathan Díaz', jersey: null, role: 'RP', throws: 'L', gate: TEAM });
-const rp2 = pitcher({ id: '2026-ven-rp2', teamCode: TEAM, era: ERA, zh: 'Carlos Guzmán', en: 'Carlos Guzmán', jersey: null, role: 'RP', throws: 'R', gate: TEAM });
-const rp3 = pitcher({ id: '2026-ven-rp3', teamCode: TEAM, era: ERA, zh: 'Andrés Machado', en: 'Andrés Machado', jersey: null, role: 'RP', throws: 'R', gate: TEAM });
-const rp4 = pitcher({ id: '2026-ven-rp4', teamCode: TEAM, era: ERA, zh: 'Anthony Molina', en: 'Anthony Molina', jersey: null, role: 'RP', throws: 'R', gate: TEAM });
-const rp5 = pitcher({ id: '2026-ven-rp5', teamCode: TEAM, era: ERA, zh: 'Keider Montero', en: 'Keider Montero', jersey: null, role: 'RP', throws: 'R', gate: TEAM });
-const rp6 = pitcher({ id: '2026-ven-rp6', teamCode: TEAM, era: ERA, zh: 'Daniel Palencia', en: 'Daniel Palencia', jersey: null, role: 'RP', throws: 'R', gate: TEAM });
-// Eduardo Rodríguez：已知左投（MLB 生涯多年為左投先發），throws 設為 L。
-const rp7 = pitcher({ id: '2026-ven-rp7', teamCode: TEAM, era: ERA, zh: 'Eduardo Rodríguez', en: 'Eduardo Rodríguez', jersey: null, role: 'RP', throws: 'L', gate: TEAM });
-const rp8 = pitcher({ id: '2026-ven-rp8', teamCode: TEAM, era: ERA, zh: 'Antonio Senzatela', en: 'Antonio Senzatela', jersey: null, role: 'RP', throws: 'R', gate: TEAM });
-const rp9 = pitcher({ id: '2026-ven-rp9', teamCode: TEAM, era: ERA, zh: 'Christian Suárez', en: 'Christian Suárez', jersey: null, role: 'RP', throws: 'R', gate: TEAM });
-// Ranger Suárez：已知左投（MLB Phillies 生涯為左投先發），throws 設為 L。
-const rp10 = pitcher({ id: '2026-ven-rp10', teamCode: TEAM, era: ERA, zh: 'Ranger Suárez', en: 'Ranger Suárez', jersey: null, role: 'RP', throws: 'L', gate: TEAM });
-// Ricardo Sánchez：已知左投，throws 設為 L。
+// 來源：選手名冊 數據分析.xlsx。樣本極小（1 局出賽）。Jhonathan Díaz：已知左投，throws 設為 L。
+const rp1 = pitcher({
+  id: '2026-ven-rp1', teamCode: TEAM, era: ERA, zh: 'Jhonathan Díaz', en: 'Jhonathan Díaz', jersey: null,
+  role: 'RP', throws: 'L', gate: TEAM,
+  club: bi('西雅圖水手', 'Seattle Mariners'),
+  realPitching: {
+    era: 0.0, whip: 0.75, eraPlus: null, fip: null, war: null,
+    k9: 6.75, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 1, ip: 1.1, so: 1, pitches: 27,
+    vsLHB: { bf: 0.1, avg: 0.500, obp: null, slg: null, ops: null, hr: 0 },
+    vsRHB: { bf: 1, avg: 0.000, obp: null, slg: null, ops: null, hr: 0 },
+  },
+});
+// 2025 年效力紐約大都會小聯盟體系。來源：選手名冊 數據分析.xlsx。
+const rp2 = pitcher({
+  id: '2026-ven-rp2', teamCode: TEAM, era: ERA, zh: 'Carlos Guzmán', en: 'Carlos Guzmán', jersey: null,
+  role: 'RP', throws: 'R', gate: TEAM,
+  leagueOverride: 'MiLB',
+  club: bi('紐約大都會（小聯盟）', 'New York Mets (Minor League)'),
+  realPitching: {
+    era: 3.12, whip: 1.02, eraPlus: null, fip: null, war: null,
+    k9: 10.29, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 40, ip: 49.0, so: 56, pitches: 810,
+    vsLHB: null, vsRHB: null,
+  },
+});
+// 2025 年效力日本 NPB 歐力士野牛隊，leagueOverride 設為 NPB。來源：選手名冊 數據分析.xlsx。
+const rp3 = pitcher({
+  id: '2026-ven-rp3', teamCode: TEAM, era: ERA, zh: 'Andrés Machado', en: 'Andrés Machado', jersey: null,
+  role: 'RP', throws: 'R', gate: TEAM,
+  leagueOverride: 'NPB',
+  club: bi('歐力士野牛', 'Orix Buffaloes'),
+  realPitching: {
+    era: 2.28, whip: 1.19, eraPlus: null, fip: null, war: null,
+    k9: 11.06, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 58, ip: 55.1, so: 68, pitches: 893,
+    vsLHB: { bf: 25.2, avg: 0.253, obp: null, slg: null, ops: null, hr: 0 },
+    vsRHB: { bf: 29.2, avg: 0.228, obp: null, slg: null, ops: null, hr: 0 },
+  },
+});
+// 來源：選手名冊 數據分析.xlsx。
+const rp4 = pitcher({
+  id: '2026-ven-rp4', teamCode: TEAM, era: ERA, zh: 'Anthony Molina', en: 'Anthony Molina', jersey: null,
+  role: 'RP', throws: 'R', gate: TEAM,
+  club: bi('科羅拉多落磯', 'Colorado Rockies'),
+  realPitching: {
+    era: 7.27, whip: 1.67, eraPlus: null, fip: null, war: null,
+    k9: 6.23, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 17, ip: 34.2, so: 24, pitches: 611,
+    vsLHB: { bf: 15.1, avg: 0.400, obp: null, slg: null, ops: null, hr: 8 },
+    vsRHB: { bf: 19.1, avg: 0.308, obp: null, slg: null, ops: null, hr: 4 },
+  },
+});
+// 來源：選手名冊 數據分析.xlsx。
+const rp5 = pitcher({
+  id: '2026-ven-rp5', teamCode: TEAM, era: ERA, zh: 'Keider Montero', en: 'Keider Montero', jersey: null,
+  role: 'RP', throws: 'R', gate: TEAM,
+  club: bi('底特律老虎', 'Detroit Tigers'),
+  realPitching: {
+    era: 4.37, whip: 1.39, eraPlus: null, fip: null, war: null,
+    k9: 7.15, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 20, ip: 90.2, so: 72, pitches: 1474,
+    vsLHB: { bf: 42, avg: 0.282, obp: null, slg: null, ops: null, hr: 10 },
+    vsRHB: { bf: 48.2, avg: 0.255, obp: null, slg: null, ops: null, hr: 6 },
+  },
+});
+// 來源：選手名冊 數據分析.xlsx。
+const rp6 = pitcher({
+  id: '2026-ven-rp6', teamCode: TEAM, era: ERA, zh: 'Daniel Palencia', en: 'Daniel Palencia', jersey: null,
+  role: 'RP', throws: 'R', gate: TEAM,
+  club: bi('芝加哥小熊', 'Chicago Cubs'),
+  realPitching: {
+    era: 2.91, whip: 1.14, eraPlus: null, fip: null, war: null,
+    k9: 10.42, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 54, ip: 52.2, so: 61, pitches: 841,
+    vsLHB: { bf: 23, avg: 0.242, obp: null, slg: null, ops: null, hr: 4 },
+    vsRHB: { bf: 29.2, avg: 0.210, obp: null, slg: null, ops: null, hr: 1 },
+  },
+});
+// Eduardo Rodríguez：已知左投（MLB 生涯多年為左投先發），throws 設為 L。來源：選手名冊 數據分析.xlsx。
+const rp7 = pitcher({
+  id: '2026-ven-rp7', teamCode: TEAM, era: ERA, zh: 'Eduardo Rodríguez', en: 'Eduardo Rodríguez', jersey: null,
+  role: 'RP', throws: 'L', gate: TEAM,
+  club: bi('亞利桑那響尾蛇', 'Arizona Diamondbacks'),
+  realPitching: {
+    era: 5.02, whip: 1.54, eraPlus: null, fip: null, war: null,
+    k9: 8.34, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 29, ip: 154.1, so: 143, pitches: 2592,
+    vsLHB: { bf: 33.2, avg: 0.303, obp: null, slg: null, ops: null, hr: 4 },
+    vsRHB: { bf: 120.2, avg: 0.281, obp: null, slg: null, ops: null, hr: 21 },
+  },
+});
+// 來源：選手名冊 數據分析.xlsx。
+const rp8 = pitcher({
+  id: '2026-ven-rp8', teamCode: TEAM, era: ERA, zh: 'Antonio Senzatela', en: 'Antonio Senzatela', jersey: null,
+  role: 'RP', throws: 'R', gate: TEAM,
+  club: bi('科羅拉多落磯', 'Colorado Rockies'),
+  realPitching: {
+    era: 6.65, whip: 1.84, eraPlus: null, fip: null, war: null,
+    k9: 5.05, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 30, ip: 130.0, so: 73, pitches: 2286,
+    vsLHB: { bf: 70.2, avg: 0.348, obp: null, slg: null, ops: null, hr: 9 },
+    vsRHB: { bf: 59.1, avg: 0.345, obp: null, slg: null, ops: null, hr: 13 },
+  },
+});
+// Christian Suárez：試算表標記為左投，throws 改為 L（原先為未查證的預設猜測）。
+// 來源：選手名冊 數據分析.xlsx。
+const rp9 = pitcher({
+  id: '2026-ven-rp9', teamCode: TEAM, era: ERA, zh: 'Christian Suárez', en: 'Christian Suárez', jersey: null,
+  role: 'RP', throws: 'L', gate: TEAM,
+  club: bi('洛杉磯道奇', 'Los Angeles Dodgers'),
+  realPitching: {
+    era: 3.38, whip: 1.52, eraPlus: null, fip: null, war: null,
+    k9: 9.14, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 42, ip: 64.0, so: 65, pitches: 1145,
+    vsLHB: null, vsRHB: null,
+  },
+});
+// Ranger Suárez：已知左投（MLB Phillies 生涯為左投先發），throws 設為 L。來源：選手名冊 數據分析.xlsx。
+const rp10 = pitcher({
+  id: '2026-ven-rp10', teamCode: TEAM, era: ERA, zh: 'Ranger Suárez', en: 'Ranger Suárez', jersey: null,
+  role: 'RP', throws: 'L', gate: TEAM,
+  club: bi('費城費城人', 'Philadelphia Phillies'),
+  realPitching: {
+    era: 3.20, whip: 1.22, eraPlus: null, fip: null, war: null,
+    k9: 8.64, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 26, ip: 157.1, so: 151, pitches: 2432,
+    vsLHB: { bf: 33, avg: 0.221, obp: null, slg: null, ops: null, hr: 4 },
+    vsRHB: { bf: 124.1, avg: 0.265, obp: null, slg: null, ops: null, hr: 10 },
+  },
+});
+// Ricardo Sánchez：已知左投，throws 設為 L。試算表未提供他的數字，維持示範值不動。
 const rp11 = pitcher({ id: '2026-ven-rp11', teamCode: TEAM, era: ERA, zh: 'Ricardo Sánchez', en: 'Ricardo Sánchez', jersey: null, role: 'RP', throws: 'L', gate: TEAM });
 
-// Ángel Zerpa：已知左投，throws 設為 L。
-const cl1 = pitcher({ id: '2026-ven-cl1', teamCode: TEAM, era: ERA, zh: 'Ángel Zerpa', en: 'Ángel Zerpa', jersey: null, role: 'CL', throws: 'L', gate: TEAM });
+// Ángel Zerpa：已知左投，throws 設為 L。來源：選手名冊 數據分析.xlsx。
+const cl1 = pitcher({
+  id: '2026-ven-cl1', teamCode: TEAM, era: ERA, zh: 'Ángel Zerpa', en: 'Ángel Zerpa', jersey: null,
+  role: 'CL', throws: 'L', gate: TEAM,
+  club: bi('堪薩斯市皇家', 'Kansas City Royals'),
+  realPitching: {
+    era: 4.18, whip: 1.38, eraPlus: null, fip: null, war: null,
+    k9: 8.07, bb9: null, avgVelocity: null, velocityDeclinePer25: null,
+    g: 69, ip: 64.2, so: 58, pitches: 1100,
+    vsLHB: { bf: 27.2, avg: 0.225, obp: null, slg: null, ops: null, hr: 3 },
+    vsRHB: { bf: 37, avg: 0.303, obp: null, slg: null, ops: null, hr: 4 },
+  },
+});
 
 /* ------------------------------------------------------------------ */
 /* 捕手                                                                */
 /* ------------------------------------------------------------------ */
 
-// William Contreras：已知左打（MLB Brewers 生涯為左打），bats 設為 L。
-// 2025 年 MLB 密爾瓦基釀酒人隊：150 場、AVG .260 / OBP .355 / SLG .399 / OPS .754，
-// 17 HR/76 打點/6 盜壘/84 四壞/120 三振，平均擊球初速 91.1 mph，揮空率 24.2%，
-// 衝刺速度 26.2 ft/s，wRC+ 114，fWAR 3.7。
-// 來源：baseballsavant.mlb.com/savant-player/william-contreras-661388（Statcast）、
-// fangraphs.com/players/william-contreras/20503/stats?position=C。
+// William Contreras：試算表標記為右打，bats 改為 R（原先誤植為左打）。AVG/OBP/SLG/OPS/揮空率
+// 與先前 Baseball Savant／FanGraphs 查證完全一致；G/安打/全壘打/三振/split 來源：
+// 選手名冊 數據分析.xlsx；wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const c1 = batter({
   id: '2026-ven-c1', teamCode: TEAM, era: ERA, zh: 'William Contreras', en: 'William Contreras', jersey: null,
-  battingOrder: 1, positions: ['C'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  battingOrder: 1, positions: ['C'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
   club: bi('密爾瓦基釀酒人', 'Milwaukee Brewers'),
   realBatting: {
     avg: 0.260, obp: 0.355, slg: 0.399, ops: 0.754,
     wrcPlus: 114, opsPlus: null, war: 3.7, whiffPct: 0.242, exitVelocity: 91.1, sprintSpeed: 26.2,
+    g: 150, h: 147, hr: 17, so: 120,
+    vsLHP: { pa: 88, avg: 0.238, obp: null, slg: null, ops: null, hr: 3 },
+    vsRHP: { pa: 146, avg: 0.267, obp: null, slg: null, ops: null, hr: 14 },
   },
 });
-const c2 = batter({ id: '2026-ven-c2', teamCode: TEAM, era: ERA, zh: 'Salvador Pérez', en: 'Salvador Pérez', jersey: null, battingOrder: null, positions: ['C'], bats: 'R', throws: 'R', rosterClass: 'BENCH', gate: TEAM });
+// 來源：選手名冊 數據分析.xlsx。
+const c2 = batter({
+  id: '2026-ven-c2', teamCode: TEAM, era: ERA, zh: 'Salvador Pérez', en: 'Salvador Pérez', jersey: null,
+  battingOrder: null, positions: ['C'], bats: 'R', throws: 'R', rosterClass: 'BENCH', gate: TEAM,
+  club: bi('堪薩斯市皇家', 'Kansas City Royals'),
+  realBatting: {
+    avg: 0.236, obp: 0.284, slg: 0.446, ops: 0.729,
+    wrcPlus: null, opsPlus: null, war: null, whiffPct: 0.269, exitVelocity: null, sprintSpeed: null,
+    g: 155, h: 141, hr: 30, so: 125,
+    vsLHP: { pa: 76, avg: 0.213, obp: null, slg: null, ops: null, hr: 2 },
+    vsRHP: { pa: 152, avg: 0.243, obp: null, slg: null, ops: null, hr: 28 },
+  },
+});
 
 /* ------------------------------------------------------------------ */
 /* 內野手（1B/2B/3B/SS 依名單順序輪流分配）                             */
 /* ------------------------------------------------------------------ */
 
-// Luis Arráez：已知左打（生涯知名左打接觸型打者），bats 設為 L。
-// 2025 年 MLB 聖地牙哥教士隊：154 場、AVG .292 / OBP .327 / SLG .392 / OPS .719，
-// 8 HR/61 打點/11 盜壘/34 四壞/21 三振（三振率全聯盟數一數二低，3.1%），
-// 平均擊球初速 86.1 mph，揮空率僅 5.3%，衝刺速度 26.5 ft/s，wRC+ 約 105，fWAR 0.9。
-// 來源：baseballsavant.mlb.com/savant-player/luis-arraez-650333（Statcast）、
-// fangraphs.com/players/luis-arraez/18568/stats?position=1B。
+// Luis Arráez：已知左打（生涯知名左打接觸型打者），bats 設為 L。AVG/OBP/SLG/OPS/揮空率
+// 與先前查證完全一致；G/安打/全壘打/三振/split 來源：選手名冊 數據分析.xlsx；
+// wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const if1 = batter({
   id: '2026-ven-1b1', teamCode: TEAM, era: ERA, zh: 'Luis Arráez', en: 'Luis Arráez', jersey: null,
   battingOrder: 2, positions: ['1B'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
@@ -136,14 +287,14 @@ const if1 = batter({
   realBatting: {
     avg: 0.292, obp: 0.327, slg: 0.392, ops: 0.719,
     wrcPlus: 105, opsPlus: null, war: 0.9, whiffPct: 0.053, exitVelocity: 86.1, sprintSpeed: 26.5,
+    g: 154, h: 181, hr: 8, so: 21,
+    vsLHP: { pa: 85, avg: 0.262, obp: null, slg: null, ops: null, hr: 4 },
+    vsRHP: { pa: 139, avg: 0.304, obp: null, slg: null, ops: null, hr: 4 },
   },
 });
-// 2025 年 MLB 聖路易紅雀隊（球季 9 月因右二頭肌拉傷提前報銷）：135 場、
-// AVG .257 / OBP .344 / SLG .447 / OPS .791，20 HR/80 打點/5 盜壘/44 四壞/142 三振，
-// 平均擊球初速 90.6 mph，揮空率 28.9%，衝刺速度 27.5 ft/s，wRC+ 123，fWAR 2.8。
+// AVG/OBP/SLG/OPS/揮空率與先前查證完全一致；G/安打/全壘打/三振/split 來源：
+// 選手名冊 數據分析.xlsx；wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 // 賽季後（2025/12）交易到紅襪隊，屬於 2025 球季結束後的異動，不影響本季數據。
-// 來源：baseballsavant.mlb.com/savant-player/willson-contreras-575929（Statcast）、
-// fangraphs.com/players/willson-contreras/11609/stats/batting。
 const if2 = batter({
   id: '2026-ven-2b1', teamCode: TEAM, era: ERA, zh: 'Willson Contreras', en: 'Willson Contreras', jersey: null,
   battingOrder: 3, positions: ['2B'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
@@ -151,30 +302,29 @@ const if2 = batter({
   realBatting: {
     avg: 0.257, obp: 0.344, slg: 0.447, ops: 0.791,
     wrcPlus: 123, opsPlus: null, war: 2.8, whiffPct: 0.289, exitVelocity: 90.6, sprintSpeed: 27.5,
+    g: 135, h: 126, hr: 20, so: 142,
+    vsLHP: { pa: 68, avg: 0.276, obp: null, slg: null, ops: null, hr: 5 },
+    vsRHP: { pa: 129, avg: 0.251, obp: null, slg: null, ops: null, hr: 15 },
   },
 });
-// Maikel García：已知左打，bats 設為 L。
-// 2025 年 MLB 堪薩斯市皇家隊（生涯突破年，首次入選明星賽、首座三壘金手套）：
-// 160 場、AVG .286 / OBP .351 / SLG .449 / OPS .800，16 HR/74 打點/23 盜壘/62 四壞/84 三振，
-// 平均擊球初速 91.3 mph，揮空率 15.0%，衝刺速度 27.9 ft/s，wRC+ 121，fWAR 5.7。
-// 來源：baseballsavant.mlb.com/savant-player/maikel-garcia-672580（Statcast）、
-// fangraphs.com/players/maikel-garcia/22715/stats/batting。
+// Maikel García：試算表標記為右打，bats 改為 R（原先誤植為左打）。AVG/OBP/SLG/OPS/揮空率
+// 與先前查證完全一致；G/安打/全壘打/三振/split 來源：選手名冊 數據分析.xlsx；
+// wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const if3 = batter({
   id: '2026-ven-3b1', teamCode: TEAM, era: ERA, zh: 'Maikel García', en: 'Maikel García', jersey: null,
-  battingOrder: 4, positions: ['3B'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  battingOrder: 4, positions: ['3B'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
   club: bi('堪薩斯市皇家', 'Kansas City Royals'),
   realBatting: {
     avg: 0.286, obp: 0.351, slg: 0.449, ops: 0.800,
     wrcPlus: 121, opsPlus: null, war: 5.7, whiffPct: 0.150, exitVelocity: 91.3, sprintSpeed: 27.9,
+    g: 160, h: 170, hr: 16, so: 84,
+    vsLHP: { pa: 71, avg: 0.314, obp: null, slg: null, ops: null, hr: 3 },
+    vsRHP: { pa: 156, avg: 0.279, obp: null, slg: null, ops: null, hr: 13 },
   },
 });
-// Andrés Giménez：已知左打（生涯多年為 Guardians 主力），bats 設為 L。
-// 2024 年季後被交易到藍鳥隊，2025 年球季（受傷缺席部分球季，101/162 場）：
-// AVG .210 / OBP .285 / SLG .313 / OPS .598，7 HR/35 打點/12 盜壘/25 四壞/66 三振，
-// 生涯攻擊表現新低；平均擊球初速 86.3 mph，揮空率 23.8%，衝刺速度 28.0 ft/s，
-// wRC+ 71，fWAR 1.0。
-// 來源：baseballsavant.mlb.com/savant-player/andres-gimenez-665926（Statcast）、
-// fangraphs.com/players/andres-gimenez/19950/stats?position=2B。
+// Andrés Giménez：已知左打（生涯多年為 Guardians 主力），bats 設為 L。AVG/OBP/SLG/OPS/揮空率
+// 與先前查證完全一致；G/安打/全壘打/三振/split 來源：選手名冊 數據分析.xlsx；
+// wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const if4 = batter({
   id: '2026-ven-ss1', teamCode: TEAM, era: ERA, zh: 'Andrés Giménez', en: 'Andrés Giménez', jersey: null,
   battingOrder: 5, positions: ['SS'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
@@ -182,15 +332,15 @@ const if4 = batter({
   realBatting: {
     avg: 0.210, obp: 0.285, slg: 0.313, ops: 0.598,
     wrcPlus: 71, opsPlus: null, war: 1.0, whiffPct: 0.238, exitVelocity: 86.3, sprintSpeed: 28.0,
+    g: 101, h: 69, hr: 7, so: 66,
+    vsLHP: { pa: 51, avg: 0.175, obp: null, slg: null, ops: null, hr: 1 },
+    vsRHP: { pa: 96, avg: 0.221, obp: null, slg: null, ops: null, hr: 6 },
   },
 });
 // 第 5 位內野手（輪到 1B）：此隊無指定打擊人選，遞補打線第 9 棒，守位維持輪值分配到的 1B。
-// 2025 年球季中交易（7/31 響尾蛇 → 8/1 起水手），合計數據：159 場、
-// AVG .228 / OBP .298 / SLG .526 / OPS .824，49 HR（生涯新高，賽季中交易球員史上最多全壘打，
-// 超越 Mark McGwire 1997 年的 34 支）/118 打點/4 盜壘/46 四壞/196 三振，
-// 平均擊球初速 90.2 mph，揮空率 29.8%，衝刺速度 26.4 ft/s，wRC+ 125，fWAR 3.8（兩隊合計）。
-// 來源：baseballsavant.mlb.com/savant-player/eugenio-suarez-553993（Statcast）、
-// fangraphs.com/players/eugenio-suarez/12552/stats?position=1B、mlb.com 交易報導。
+// AVG/OBP/SLG/OPS/揮空率與先前查證完全一致（2025 球季中交易，7/31 響尾蛇 → 8/1 起水手，
+// 試算表「ARI/SEA」與先前查證的交易紀錄一致）；G/安打/全壘打/三振/split 來源：
+// 選手名冊 數據分析.xlsx；wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const if5 = batter({
   id: '2026-ven-1b2', teamCode: TEAM, era: ERA, zh: 'Eugenio Suárez', en: 'Eugenio Suárez', jersey: null,
   battingOrder: 9, positions: ['1B'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
@@ -198,36 +348,59 @@ const if5 = batter({
   realBatting: {
     avg: 0.228, obp: 0.298, slg: 0.526, ops: 0.824,
     wrcPlus: 125, opsPlus: null, war: 3.8, whiffPct: 0.298, exitVelocity: 90.2, sprintSpeed: 26.4,
+    g: 159, h: 134, hr: 49, so: 196,
+    vsLHP: { pa: 85, avg: 0.164, obp: null, slg: null, ops: null, hr: 13 },
+    vsRHP: { pa: 152, avg: 0.252, obp: null, slg: null, ops: null, hr: 36 },
   },
 });
-// Gleyber Torres：已知switch hitter，bats 設為 S。
-const if6 = batter({ id: '2026-ven-2b2', teamCode: TEAM, era: ERA, zh: 'Gleyber Torres', en: 'Gleyber Torres', jersey: null, battingOrder: null, positions: ['2B'], bats: 'S', throws: 'R', rosterClass: 'BENCH', gate: TEAM });
-const if7 = batter({ id: '2026-ven-3b2', teamCode: TEAM, era: ERA, zh: 'Ezequiel Tovar', en: 'Ezequiel Tovar', jersey: null, battingOrder: null, positions: ['3B'], bats: 'R', throws: 'R', rosterClass: 'BENCH', gate: TEAM });
+// Gleyber Torres：已知switch hitter，bats 設為 S。來源：選手名冊 數據分析.xlsx。
+const if6 = batter({
+  id: '2026-ven-2b2', teamCode: TEAM, era: ERA, zh: 'Gleyber Torres', en: 'Gleyber Torres', jersey: null,
+  battingOrder: null, positions: ['2B'], bats: 'S', throws: 'R', rosterClass: 'BENCH', gate: TEAM,
+  club: bi('底特律老虎', 'Detroit Tigers'),
+  realBatting: {
+    avg: 0.256, obp: 0.358, slg: 0.387, ops: 0.745,
+    wrcPlus: null, opsPlus: null, war: null, whiffPct: 0.195, exitVelocity: null, sprintSpeed: null,
+    g: 145, h: 136, hr: 16, so: 101,
+    vsLHP: { pa: 92, avg: 0.280, obp: null, slg: null, ops: null, hr: 7 },
+    vsRHP: { pa: 139, avg: 0.247, obp: null, slg: null, ops: null, hr: 9 },
+  },
+});
+// 來源：選手名冊 數據分析.xlsx。
+const if7 = batter({
+  id: '2026-ven-3b2', teamCode: TEAM, era: ERA, zh: 'Ezequiel Tovar', en: 'Ezequiel Tovar', jersey: null,
+  battingOrder: null, positions: ['3B'], bats: 'R', throws: 'R', rosterClass: 'BENCH', gate: TEAM,
+  club: bi('科羅拉多落磯', 'Colorado Rockies'),
+  realBatting: {
+    avg: 0.253, obp: 0.294, slg: 0.400, ops: 0.694,
+    wrcPlus: null, opsPlus: null, war: null, whiffPct: 0.314, exitVelocity: null, sprintSpeed: null,
+    g: 95, h: 91, hr: 9, so: 98,
+    vsLHP: { pa: 41, avg: 0.275, obp: null, slg: null, ops: null, hr: 2 },
+    vsRHP: { pa: 90, avg: 0.246, obp: null, slg: null, ops: null, hr: 7 },
+  },
+});
 
 /* ------------------------------------------------------------------ */
 /* 外野手（LF/CF/RF 依名單順序輪流分配）                                */
 /* ------------------------------------------------------------------ */
 
-// 2025 年 MLB 波士頓紅襪隊：115 場、AVG .247 / OBP .317 / SLG .469 / OPS .786，
-// 22 HR/69 打點/6 盜壘/40 四壞/101 三振，平均擊球初速 90.8 mph，揮空率 24.0%，
-// 衝刺速度 27.6 ft/s，wRC+ 111，fWAR 2.5。
-// 來源：baseballsavant.mlb.com/savant-player/wilyer-abreu-677800（Statcast）、
-// fangraphs.com/players/wilyer-abreu/23772/stats?position=OF。
+// Wilyer Abreu：試算表標記為左投左打，bats 改為 L（原先誤植為右打）。
+// AVG/OBP/SLG/OPS/揮空率與先前查證完全一致；G/安打/全壘打/三振/split 來源：
+// 選手名冊 數據分析.xlsx；wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const of1 = batter({
   id: '2026-ven-lf1', teamCode: TEAM, era: ERA, zh: 'Wilyer Abreu', en: 'Wilyer Abreu', jersey: null,
-  battingOrder: 6, positions: ['LF'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
+  battingOrder: 6, positions: ['LF'], bats: 'L', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
   club: bi('波士頓紅襪', 'Boston Red Sox'),
   realBatting: {
     avg: 0.247, obp: 0.317, slg: 0.469, ops: 0.786,
     wrcPlus: 111, opsPlus: null, war: 2.5, whiffPct: 0.240, exitVelocity: 90.8, sprintSpeed: 27.6,
+    g: 115, h: 92, hr: 22, so: 101,
+    vsLHP: { pa: 47, avg: 0.230, obp: null, slg: null, ops: null, hr: 1 },
+    vsRHP: { pa: 110, avg: 0.250, obp: null, slg: null, ops: null, hr: 21 },
   },
 });
-// 2025 年 MLB 亞特蘭大勇士隊（前季 ACL 重建，開季缺席約 7 週）：95 場、
-// AVG .290 / OBP .417 / SLG .518 / OPS .935，21 HR/42 打點/9 盜壘/71 四壞/102 三振，
-// 平均擊球初速 92.7 mph，揮空率 24.8%，衝刺速度 27.9 ft/s，wRC+ 162，fWAR 3.5；
-// 獲選國聯最佳復出球員。
-// 來源：baseballsavant.mlb.com/savant-player/ronald-acuna-jr-660670（Statcast）、
-// fangraphs.com/players/ronald-acuna-jr/18401/stats?position=OF。
+// AVG/OBP/SLG/OPS/揮空率與先前查證完全一致；G/安打/全壘打/三振/split 來源：
+// 選手名冊 數據分析.xlsx；wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const of2 = batter({
   id: '2026-ven-cf1', teamCode: TEAM, era: ERA, zh: 'Ronald Acuña Jr.', en: 'Ronald Acuña Jr.', jersey: null,
   battingOrder: 7, positions: ['CF'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
@@ -235,14 +408,13 @@ const of2 = batter({
   realBatting: {
     avg: 0.290, obp: 0.417, slg: 0.518, ops: 0.935,
     wrcPlus: 162, opsPlus: null, war: 3.5, whiffPct: 0.248, exitVelocity: 92.7, sprintSpeed: 27.9,
+    g: 95, h: 98, hr: 21, so: 102,
+    vsLHP: { pa: 58, avg: 0.253, obp: null, slg: null, ops: null, hr: 4 },
+    vsRHP: { pa: 88, avg: 0.305, obp: null, slg: null, ops: null, hr: 17 },
   },
 });
-// 2025 年 MLB 密爾瓦基釀酒人隊（右腿後肌反覆拉傷，缺席 31 場）：131 場、
-// AVG .270 / OBP .308 / SLG .463 / OPS .771，21 HR/78 打點/21 盜壘/30 四壞/121 三振，
-// 平均擊球初速 89.3 mph，揮空率 26.0%，衝刺速度 29.2 ft/s，wRC+ 112，fWAR 3.0；
-// 成為 MLB 史上最年輕連兩季 20-20（20 轟 20 盜）球員。
-// 來源：baseballsavant.mlb.com/savant-player/jackson-chourio-694192（Statcast）、
-// fangraphs.com/players/jackson-chourio/28806/stats?position=OF。
+// AVG/OBP/SLG/OPS/揮空率與先前查證完全一致；G/安打/全壘打/三振/split 來源：
+// 選手名冊 數據分析.xlsx；wRC+/fWAR/平均擊球初速/離壘速度沿用先前查證但試算表未涵蓋的數字。
 const of3 = batter({
   id: '2026-ven-rf1', teamCode: TEAM, era: ERA, zh: 'Jackson Chourio', en: 'Jackson Chourio', jersey: null,
   battingOrder: 8, positions: ['RF'], bats: 'R', throws: 'R', rosterClass: 'STARTER', gate: TEAM,
@@ -250,9 +422,24 @@ const of3 = batter({
   realBatting: {
     avg: 0.270, obp: 0.308, slg: 0.463, ops: 0.771,
     wrcPlus: 112, opsPlus: null, war: 3.0, whiffPct: 0.260, exitVelocity: 89.3, sprintSpeed: 29.2,
+    g: 131, h: 148, hr: 21, so: 121,
+    vsLHP: { pa: 78, avg: 0.343, obp: null, slg: null, ops: null, hr: 7 },
+    vsRHP: { pa: 130, avg: 0.245, obp: null, slg: null, ops: null, hr: 14 },
   },
 });
-const of4 = batter({ id: '2026-ven-lf2', teamCode: TEAM, era: ERA, zh: 'Javier Sanoja', en: 'Javier Sanoja', jersey: null, battingOrder: null, positions: ['LF'], bats: 'R', throws: 'R', rosterClass: 'BENCH', gate: TEAM });
+// 來源：選手名冊 數據分析.xlsx。
+const of4 = batter({
+  id: '2026-ven-lf2', teamCode: TEAM, era: ERA, zh: 'Javier Sanoja', en: 'Javier Sanoja', jersey: null,
+  battingOrder: null, positions: ['LF'], bats: 'R', throws: 'R', rosterClass: 'BENCH', gate: TEAM,
+  club: bi('邁阿密馬林魚', 'Miami Marlins'),
+  realBatting: {
+    avg: 0.243, obp: 0.287, slg: 0.396, ops: 0.683,
+    wrcPlus: null, opsPlus: null, war: null, whiffPct: 0.124, exitVelocity: null, sprintSpeed: null,
+    g: 120, h: 76, hr: 6, so: 41,
+    vsLHP: { pa: 73, avg: 0.233, obp: null, slg: null, ops: null, hr: 3 },
+    vsRHP: { pa: 93, avg: 0.249, obp: null, slg: null, ops: null, hr: 3 },
+  },
+});
 
 /* ------------------------------------------------------------------ */
 /* 教練團                                                              */
