@@ -89,10 +89,13 @@ const sp5 = pitcher({
   },
 });
 
+// 松本裕樹：福岡軟銀鷹隊真實終結者，51 場出賽僅 50.2 局、ERA 1.07 是典型後段牛棚用法，
+// 改標記為 CL 並沿用 `2026-jpn-cl1` 這個 id（原本被誤標為一般後援 RP，
+// 而終結者欄位誤放了先發投手山本由伸，見下方說明）。
 // 來源：選手名冊 數據分析.xlsx。
-const rp1 = pitcher({
-  id: '2026-jpn-rp1', teamCode: TEAM, era: ERA, zh: '松本裕樹', en: '松本裕樹', jersey: null,
-  role: 'RP', throws: 'R', gate: TEAM,
+const cl1 = pitcher({
+  id: '2026-jpn-cl1', teamCode: TEAM, era: ERA, zh: '松本裕樹', en: '松本裕樹', jersey: null,
+  role: 'CL', throws: 'R', gate: TEAM,
   club: bi('福岡軟銀鷹', 'Fukuoka SoftBank Hawks'),
   realPitching: {
     era: 1.07, whip: 0.81, eraPlus: null, fip: null, war: null,
@@ -198,10 +201,12 @@ const rp8 = pitcher({
 });
 
 // 山本由伸：2025 年效力 MLB 洛杉磯道奇隊，leagueOverride 設為 MLB。
+// 他是道奇隊先發輪值戰力（真實球季 30 場先發、173.2 局），不是終結者——
+// 之前誤標為 CL，改標記為 SP 並歸入先發輪值。
 // 來源：選手名冊 數據分析.xlsx。
-const cl1 = pitcher({
-  id: '2026-jpn-cl1', teamCode: TEAM, era: ERA, zh: '山本由伸', en: '山本由伸', jersey: null,
-  role: 'CL', throws: 'R', gate: TEAM, leagueOverride: 'MLB',
+const sp6 = pitcher({
+  id: '2026-jpn-sp6', teamCode: TEAM, era: ERA, zh: '山本由伸', en: '山本由伸', jersey: null,
+  role: 'SP', throws: 'R', gate: TEAM, leagueOverride: 'MLB',
   club: bi('洛杉磯道奇', 'Los Angeles Dodgers'),
   realPitching: {
     era: 2.49, whip: 0.99, eraPlus: null, fip: null, war: null,
@@ -541,7 +546,7 @@ const snubs: RosterSnub[] = [
   },
   {
     player: snubP,
-    comparedToPlayerId: '2026-jpn-rp1',
+    comparedToPlayerId: '2026-jpn-cl1',
     argument: bi(
       '身兼先發與中繼彈性、單場可承接 3 至 5 局的搖擺人價值，在 65 球限制下的牛棚銜接策略中極具戰術彈性；但最終名單以數據建模為導向，優先保留專職短局勝負分數更高的既有牛棚人選，使他成為配置邏輯下的邊緣人。',
       'His value as a swing-man capable of 3-to-5 inning stints gives real tactical flexibility for bullpen bridging under the 65-pitch limit — but the final roster was built around a model favoring specialists with higher short-burst leverage scores, leaving him on the margin of that construction logic.',
@@ -566,8 +571,8 @@ export const ROSTER_JPN_2026: Roster = {
   coachingStaff,
   lineup: [c1, if1, if2, if3, if4, of1, of2, of3, dh1],
   bench: [c2, c3, if5, if6, if7, of4, of5],
-  rotation: [sp1, sp2, sp3, sp4, sp5],
-  bullpen: [rp1, rp2, rp3, rp4, rp5, rp6, rp7, rp8],
+  rotation: [sp1, sp2, sp3, sp4, sp5, sp6],
+  bullpen: [rp2, rp3, rp4, rp5, rp6, rp7, rp8],
   closer: cl1,
   snubs,
 };
