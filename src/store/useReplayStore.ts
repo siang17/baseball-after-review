@@ -12,6 +12,7 @@ import type {
   PitchLimitConfig,
   PitchLimitPreset,
   PitchTimerConfig,
+  Position,
   Side,
   UserDecisionRecord,
 } from '@/types/baseball';
@@ -55,6 +56,9 @@ export interface SelectGamePayload {
   game: Game;
   homeLineup: string[];
   awayLineup: string[];
+  /** 與 homeLineup 一一對應的守備位置指派，預設帶入各球員自己的主守位。 */
+  homePositions: Position[];
+  awayPositions: Position[];
   homePitcher: string;
   awayPitcher: string;
   /** 由 ?game=... 深連結進來時直接跳到逐球復盤。 */
@@ -77,6 +81,9 @@ interface ReplayState {
   game: Game | null;
   homeLineup: string[];
   awayLineup: string[];
+  /** 與 homeLineup/awayLineup 一一對應的守備位置指派，自訂模式可調整。 */
+  homePositions: Position[];
+  awayPositions: Position[];
   homePitcher: string;
   awayPitcher: string;
   /** 每按一次「重新產生」就 +1，用來換掉模擬的亂數種子。 */
@@ -92,6 +99,8 @@ interface ReplayState {
   selectGame: (payload: SelectGamePayload) => void;
   setHomeLineup: (ids: string[]) => void;
   setAwayLineup: (ids: string[]) => void;
+  setHomePositions: (positions: Position[]) => void;
+  setAwayPositions: (positions: Position[]) => void;
   setHomePitcher: (id: string) => void;
   setAwayPitcher: (id: string) => void;
   /** 同一組設定換一組模擬結果。 */
@@ -103,9 +112,6 @@ interface ReplayState {
   playbackSpeed: 0.5 | 1 | 2 | 4;
 
   managerMode: ManagerModeConfig;
-  selectedLineup: string[];
-  defenseAssignments: Record<string, import('@/types/baseball').Position>;
-  selectionFilters: Array<'OFFENSE' | 'DEFENSE' | 'SPEED'>;
   pitchTimer: PitchTimerConfig;
   pitchCom: PitchComConfig;
   pitchLimit: PitchLimitConfig;
@@ -124,10 +130,6 @@ interface ReplayState {
   setManagerEnabled: (v: boolean) => void;
   setManagerSide: (side: Side) => void;
   setManagerProfile: (profileId: import('@/types/baseball').ManagerProfileId) => void;
-  setSelectedLineup: (playerIds: string[]) => void;
-  moveLineupPlayer: (playerId: string, direction: -1 | 1) => void;
-  setDefenseAssignment: (playerId: string, position: import('@/types/baseball').Position) => void;
-  toggleSelectionFilter: (filter: 'OFFENSE' | 'DEFENSE' | 'SPEED') => void;
   updateManagerTriggers: (patch: Partial<ManagerModeConfig['triggers']>) => void;
 
   setTimer: (patch: Partial<PitchTimerConfig>) => void;
@@ -154,6 +156,8 @@ export const useReplayStore = create<ReplayState>()((set, get) => ({
   game: null,
   homeLineup: [],
   awayLineup: [],
+  homePositions: [],
+  awayPositions: [],
   homePitcher: '',
   awayPitcher: '',
   seedNonce: 0,
@@ -170,6 +174,8 @@ export const useReplayStore = create<ReplayState>()((set, get) => ({
 
   setHomeLineup: (homeLineup) => set({ homeLineup }),
   setAwayLineup: (awayLineup) => set({ awayLineup }),
+  setHomePositions: (homePositions) => set({ homePositions }),
+  setAwayPositions: (awayPositions) => set({ awayPositions }),
   setHomePitcher: (homePitcher) => set({ homePitcher }),
   setAwayPitcher: (awayPitcher) => set({ awayPitcher }),
   regenerate: () => set({ seedNonce: get().seedNonce + 1, cursor: 0 }),
@@ -179,9 +185,6 @@ export const useReplayStore = create<ReplayState>()((set, get) => ({
   playbackSpeed: 1,
 
   managerMode: defaultManagerMode,
-  selectedLineup: ['candidate-1', 'candidate-2', 'candidate-3', 'candidate-4', 'candidate-5', 'candidate-6', 'candidate-7', 'candidate-8', 'candidate-9'],
-  defenseAssignments: { 'candidate-1': 'CF', 'candidate-2': 'SS', 'candidate-3': '3B', 'candidate-4': '1B', 'candidate-5': 'RF', 'candidate-6': 'LF', 'candidate-7': '2B', 'candidate-8': 'C', 'candidate-9': 'DH' },
-  selectionFilters: ['DEFENSE'],
   pitchTimer: defaultTimer,
   pitchCom: defaultPitchCom,
   pitchLimit: createPitchLimitConfig(65, true),
@@ -199,17 +202,6 @@ export const useReplayStore = create<ReplayState>()((set, get) => ({
     set({ managerMode: { ...get().managerMode, enabled } }),
   setManagerSide: (side) => set({ managerMode: { ...get().managerMode, side } }),
   setManagerProfile: (profileId) => set({ managerMode: { ...get().managerMode, profileId, enabled: true } }),
-  setSelectedLineup: (selectedLineup) => set({ selectedLineup: selectedLineup.slice(0, 9) }),
-  moveLineupPlayer: (playerId, direction) => set((state) => {
-    const from = state.selectedLineup.indexOf(playerId);
-    const to = from + direction;
-    if (from < 0 || to < 0 || to >= state.selectedLineup.length) return state;
-    const selectedLineup = [...state.selectedLineup];
-    [selectedLineup[from], selectedLineup[to]] = [selectedLineup[to], selectedLineup[from]];
-    return { selectedLineup };
-  }),
-  setDefenseAssignment: (playerId, position) => set({ defenseAssignments: { ...get().defenseAssignments, [playerId]: position } }),
-  toggleSelectionFilter: (filter) => set((state) => ({ selectionFilters: state.selectionFilters.includes(filter) ? state.selectionFilters.filter((f) => f !== filter) : [...state.selectionFilters, filter] })),
   updateManagerTriggers: (patch) =>
     set({
       managerMode: {
@@ -227,9 +219,14 @@ export const useReplayStore = create<ReplayState>()((set, get) => ({
     set({ pitchLimit: { ...get().pitchLimit, enabled } }),
 
   openDecision: (dp) => set({ activeDecision: dp, isPlaying: false }),
+  /**
+   * 送出決策後不清空 activeDecision——駕駛艙是靠 `activeDecision && <Modal .../>` 掛載的，
+   * 若這裡就清空，Modal 會在畫出「三方對比」結果之前就被整個卸載，使用者永遠看不到
+   * 自己選的調度到底發生了什麼事。改成只記錄決策，讓使用者按「繼續復盤」
+   * （呼叫 dismissDecision）時才真的關閉。
+   */
   resolveDecision: (record) =>
     set({
-      activeDecision: null,
       decisionLog: [...get().decisionLog, record],
     }),
   dismissDecision: () => set({ activeDecision: null }),

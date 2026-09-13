@@ -178,6 +178,8 @@ export const UI = {
     decisionPoints: bi('調度決策點', 'Decision Points'),
     jumpToDecision: bi('跳至決策點', 'Jump to decision'),
     noDecisionPoints: bi('這場比賽沒有偵測到高槓桿調度時刻。', 'No high-leverage decision moments detected in this game.'),
+    position: bi('守備位置', 'Position'),
+    duplicatePosition: bi('有守備位置重複，請調整後再產生復盤。', 'Two players share a fielding position — fix that before generating the review.'),
   },
   scatter: {
     xAxis: bi('X 軸', 'X axis'),
