@@ -27,6 +27,7 @@ import type {
   MatchState,
   PitchData,
   Player,
+  Position,
   Roster,
   UserDecisionRecord,
   WinProbabilityPoint,
@@ -52,17 +53,32 @@ function selectablePlayers(roster: Roster): Player[] {
   return [...roster.lineup, ...roster.bench, ...roster.snubs.map((s) => s.player)];
 }
 
-function buildCustomRoster(base: Roster, lineupIds: string[], pitcherId: string): Roster {
+function buildCustomRoster(base: Roster, lineupIds: string[], positions: Position[], pitcherId: string): Roster {
   const pool = selectablePlayers(base);
   const lineup = lineupIds.map((id, i) => {
     const player = pool.find((p) => p.id === id) ?? base.lineup[i];
-    return { ...player, battingOrder: i + 1, rosterClass: 'STARTER' as const };
+    const position = positions[i] ?? player.positions[0];
+    return { ...player, battingOrder: i + 1, rosterClass: 'STARTER' as const, positions: [position] };
   });
   const bench = pool.filter((p) => !lineupIds.includes(p.id) && base.bench.some((b) => b.id === p.id));
   const pitcherPool = [...base.rotation, ...base.bullpen, ...(base.closer ? [base.closer] : [])];
   const starter = pitcherPool.find((p) => p.id === pitcherId) ?? base.rotation[0];
   const rotation = [starter, ...base.rotation.filter((p) => p.id !== starter.id)];
   return { ...base, lineup, bench, rotation };
+}
+
+/** 先發打線可指派的守位；投手不在其中（投手打席不在本 app 的模擬範圍內）。 */
+const LINEUP_POSITIONS: Position[] = ['C', '1B', '2B', '3B', 'SS', 'LF', 'CF', 'RF', 'DH'];
+
+/** 找出重複被指派的守位（不含 null／未指派），用來擋下不合理的自訂打線。 */
+function findDuplicatePositions(positions: Position[]): Set<Position> {
+  const seen = new Set<Position>();
+  const dupes = new Set<Position>();
+  for (const pos of positions) {
+    if (seen.has(pos)) dupes.add(pos);
+    seen.add(pos);
+  }
+  return dupes;
 }
 
 function matchStateFromPitch(pitch: GameReviewResult['review']['pitches'][number], review: GameReviewResult['review']): MatchState {
@@ -156,19 +172,24 @@ function TeamLineupEditor({
   label,
   roster,
   lineupIds,
+  positions,
   pitcherId,
   onLineupChange,
+  onPositionsChange,
   onPitcherChange,
   lang,
 }: {
   label: string;
   roster: Roster;
   lineupIds: string[];
+  positions: Position[];
   pitcherId: string;
   onLineupChange: (ids: string[]) => void;
+  onPositionsChange: (positions: Position[]) => void;
   onPitcherChange: (id: string) => void;
   lang: 'zh' | 'en';
 }) {
+  const dupePositions = React.useMemo(() => findDuplicatePositions(positions), [positions]);
   // 這九個打線下拉選單的選項完全相同，且只跟 roster/lang 有關；
   // 原本每次 render 都重建一次名單、並在內層對每個選項做一次 snubs 線性搜尋（O(pool × snubs × 9）。
   const pool = React.useMemo(() => selectablePlayers(roster), [roster]);
@@ -208,20 +229,34 @@ function TeamLineupEditor({
       </label>
 
       <div className="space-y-2">
-        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{UI.replay.startingLineup[lang]}</span>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{UI.replay.startingLineup[lang]}</span>
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-ink-muted">{UI.replay.position[lang]}</span>
+        </div>
         {lineupIds.map((id, i) => {
           const current = poolById.get(id);
           const isSnub = snubIds.has(id);
           const replacedStarter = roster.lineup[i];
+          const position = positions[i];
+          const isDupe = dupePositions.has(position);
           return (
             <div key={i} className="flex items-center gap-2">
               <span className="w-5 shrink-0 font-[family-name:var(--font-mono-ticket)] text-xs font-bold text-ink-muted">{i + 1}</span>
               <select
                 value={id}
                 onChange={(e) => {
-                  const next = [...lineupIds];
-                  next[i] = e.target.value;
-                  onLineupChange(next);
+                  const nextId = e.target.value;
+                  const nextIds = [...lineupIds];
+                  nextIds[i] = nextId;
+                  onLineupChange(nextIds);
+                  // 換人時把守位重設回新球員自己的主守位（依球員特性帶入預設值，使用者仍可再手動調整）。
+                  const nextPlayer = poolById.get(nextId);
+                  const fallback = nextPlayer?.positions[0];
+                  if (fallback && LINEUP_POSITIONS.includes(fallback)) {
+                    const nextPositions = [...positions];
+                    nextPositions[i] = fallback;
+                    onPositionsChange(nextPositions);
+                  }
                 }}
                 className={cn(
                   'flex-1 rounded-lg border px-2 py-1.5 text-xs font-semibold',
@@ -230,12 +265,33 @@ function TeamLineupEditor({
               >
                 {lineupOptions}
               </select>
+              <select
+                value={position}
+                onChange={(e) => {
+                  const next = [...positions];
+                  next[i] = e.target.value as Position;
+                  onPositionsChange(next);
+                }}
+                className={cn(
+                  'w-20 shrink-0 rounded-lg border px-2 py-1.5 text-xs font-semibold',
+                  isDupe ? 'border-alert bg-alert-soft text-alert' : 'border-line bg-paper-pure text-ink',
+                )}
+              >
+                {LINEUP_POSITIONS.map((pos) => (
+                  <option key={pos} value={pos}>
+                    {pos}
+                  </option>
+                ))}
+              </select>
               {isSnub && current && replacedStarter && (
                 <SnubImpactPanel snub={current} replaced={replacedStarter} era={roster.era} lang={lang} className="w-full basis-full" />
               )}
             </div>
           );
         })}
+        {dupePositions.size > 0 && (
+          <p className="text-[11px] font-semibold text-alert">{UI.replay.duplicatePosition[lang]}</p>
+        )}
       </div>
     </div>
   );
@@ -446,6 +502,8 @@ export default function ReplayPage() {
   const game = useReplayStore((s) => s.game);
   const homeLineup = useReplayStore((s) => s.homeLineup);
   const awayLineup = useReplayStore((s) => s.awayLineup);
+  const homePositions = useReplayStore((s) => s.homePositions);
+  const awayPositions = useReplayStore((s) => s.awayPositions);
   const homePitcher = useReplayStore((s) => s.homePitcher);
   const awayPitcher = useReplayStore((s) => s.awayPitcher);
   const seedNonce = useReplayStore((s) => s.seedNonce);
@@ -453,6 +511,8 @@ export default function ReplayPage() {
   const selectGame = useReplayStore((s) => s.selectGame);
   const setHomeLineup = useReplayStore((s) => s.setHomeLineup);
   const setAwayLineup = useReplayStore((s) => s.setAwayLineup);
+  const setHomePositions = useReplayStore((s) => s.setHomePositions);
+  const setAwayPositions = useReplayStore((s) => s.setAwayPositions);
   const setHomePitcher = useReplayStore((s) => s.setHomePitcher);
   const setAwayPitcher = useReplayStore((s) => s.setAwayPitcher);
   const regenerate = useReplayStore((s) => s.regenerate);
@@ -473,6 +533,8 @@ export default function ReplayPage() {
         game: selectedGame,
         homeLineup: home.lineup.map((p) => p.id),
         awayLineup: away.lineup.map((p) => p.id),
+        homePositions: home.lineup.map((p) => p.positions[0]),
+        awayPositions: away.lineup.map((p) => p.positions[0]),
         homePitcher: home.rotation[0]?.id ?? home.bullpen[0]?.id ?? '',
         awayPitcher: away.rotation[0]?.id ?? away.bullpen[0]?.id ?? '',
         skipToReview: opts?.skipToReview,
@@ -500,10 +562,13 @@ export default function ReplayPage() {
 
   const reviewResult = React.useMemo<GameReviewResult | null>(() => {
     if (!game || !homeRoster || !awayRoster || homeLineup.length !== 9 || awayLineup.length !== 9) return null;
-    const customHome = buildCustomRoster(homeRoster, homeLineup, homePitcher);
-    const customAway = buildCustomRoster(awayRoster, awayLineup, awayPitcher);
+    // 守位重複只在自訂打線編輯器裡擋「產生逐球復盤」按鈕；這裡不能重複擋一次，
+    // 否則「當下選擇」（直接採用真實先發）對沒有真正 DH 的隊伍（本來就有兩位野手
+    // 共用同一個守位標籤）會整頁開天窗——守位純粹是顯示用途，模擬本身不吃這個欄位。
+    const customHome = buildCustomRoster(homeRoster, homeLineup, homePositions, homePitcher);
+    const customAway = buildCustomRoster(awayRoster, awayLineup, awayPositions, awayPitcher);
     return generateGameReviewDetailed(customHome, customAway, game, `${game.id}-v${seedNonce}`);
-  }, [game, homeRoster, awayRoster, homeLineup, awayLineup, homePitcher, awayPitcher, seedNonce]);
+  }, [game, homeRoster, awayRoster, homeLineup, awayLineup, homePositions, awayPositions, homePitcher, awayPitcher, seedNonce]);
 
   React.useEffect(() => {
     if (!autoDecisionPending || !reviewResult) return;
@@ -577,8 +642,10 @@ export default function ReplayPage() {
               label={`${getTeam(game.awayTeamCode, era)?.flagEmoji ?? ''} ${awayRoster.teamCode} (${UI.matchup.departure[lang]})`}
               roster={awayRoster}
               lineupIds={awayLineup}
+              positions={awayPositions}
               pitcherId={awayPitcher}
               onLineupChange={setAwayLineup}
+              onPositionsChange={setAwayPositions}
               onPitcherChange={setAwayPitcher}
               lang={lang}
             />
@@ -586,8 +653,10 @@ export default function ReplayPage() {
               label={`${getTeam(game.homeTeamCode, era)?.flagEmoji ?? ''} ${homeRoster.teamCode} (${UI.matchup.arrival[lang]})`}
               roster={homeRoster}
               lineupIds={homeLineup}
+              positions={homePositions}
               pitcherId={homePitcher}
               onLineupChange={setHomeLineup}
+              onPositionsChange={setHomePositions}
               onPitcherChange={setHomePitcher}
               lang={lang}
             />
@@ -595,11 +664,17 @@ export default function ReplayPage() {
 
           <button
             type="button"
+            disabled={findDuplicatePositions(homePositions).size > 0 || findDuplicatePositions(awayPositions).size > 0}
             onClick={() => {
               setCursor(0);
               setFlowStep('REVIEW');
             }}
-            className="flex items-center gap-2 rounded-full bg-plum px-6 py-2.5 text-sm font-bold text-white transition hover:brightness-110"
+            className={cn(
+              'flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold text-white transition',
+              findDuplicatePositions(homePositions).size > 0 || findDuplicatePositions(awayPositions).size > 0
+                ? 'cursor-not-allowed bg-ink-muted/50'
+                : 'bg-plum hover:brightness-110',
+            )}
           >
             <PlaneTakeoff size={16} />
             {UI.replay.generate[lang]}

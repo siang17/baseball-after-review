@@ -20,6 +20,7 @@ import { UI, bi } from '@/lib/i18n';
 import { deltaForSide } from '@/lib/sabermetrics';
 import { cn, formatPct, formatSigned } from '@/lib/utils';
 import type {
+  Bilingual,
   DecisionOption,
   DecisionOutcome,
   DecisionPoint,
@@ -104,6 +105,36 @@ function Readout({
       </div>
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* 依選項與勝率變化生成的結果敘述                                        */
+/*                                                                     */
+/* 這個 app 沒有替每個調度選項各自重新跑一次逐球模擬，所以「維持現狀」    */
+/* 直接借用歷史真實的那一球結果（選它就是真的照原計畫進行）；換人／代打  */
+/* 則依該選項自己算好的 ΔWP 正負，套用對應的敘述模板——同一顆決策點下，  */
+/* 選不同選項會讀到不同文字與數字，而不是同一句通用的「已送出」。       */
+/* ------------------------------------------------------------------ */
+
+const ALT_NARRATIVE: Record<'PINCH_HITTER' | 'PITCHING_CHANGE', Record<'up' | 'down' | 'flat', Bilingual>> = {
+  PINCH_HITTER: {
+    up: bi('代打奏效：換上的打者打出關鍵一擊，扭轉了這個打席的走向。', 'The pinch-hit paid off — the substitute came through with a timely knock that swung the at-bat.'),
+    down: bi('代打未能奏效：換上的打者沒能抓住機會，情勢未見改善。', "The pinch-hit didn't pan out — the substitute came up empty, no better than sticking with the incumbent."),
+    flat: bi('代打換人對這個打席影響有限，勝率幾乎沒有變化。', 'The pinch-hit swap barely moved the needle on this at-bat.'),
+  },
+  PITCHING_CHANGE: {
+    up: bi('換投奏效：新投手壓制了對方打線，化解了這波危機。', 'The pitching change worked — the new arm shut the door on the threat.'),
+    down: bi('換投未能奏效：牛棚投手同樣遭到擊破，未能改善局勢。', "The move to the bullpen didn't help — the new pitcher got hit too."),
+    flat: bi('換投對這個打席影響有限，勝率幾乎沒有變化。', 'The pitching change barely moved the needle on this at-bat.'),
+  },
+};
+
+/** 你的選擇對應的結果敘述；HOLD 借用歷史真實結果，其餘依 ΔWP 正負套模板。 */
+function narrativeForChoice(option: DecisionOption, delta: number, historicalResult: Bilingual): Bilingual {
+  if (option.type === 'HOLD') return historicalResult;
+  if (option.type !== 'PINCH_HITTER' && option.type !== 'PITCHING_CHANGE') return historicalResult;
+  const bucket = delta > 0.01 ? 'up' : delta < -0.01 ? 'down' : 'flat';
+  return ALT_NARRATIVE[option.type][bucket];
 }
 
 /* ------------------------------------------------------------------ */
@@ -265,13 +296,19 @@ export function ManagerDecisionModal({
         source: 'USER',
         option: chosen,
         deltaWp: userDelta,
-        actualResult: null,
+        actualResult: narrativeForChoice(chosen, userDelta, decisionPoint.historical.actualResult ?? bi('', '')),
         rationale: bi(
           '依據你選擇的調度所做的蒙地卡羅推演結果。',
           'Monte Carlo projection for the move you selected.',
         ),
       }
     : null;
+
+  const aiOptimalOutcome: DecisionOutcome = {
+    ...decisionPoint.aiOptimal,
+    deltaWp: optimalDelta,
+    actualResult: narrativeForChoice(decisionPoint.aiOptimal.option, optimalDelta, decisionPoint.historical.actualResult ?? bi('', '')),
+  };
 
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
@@ -370,11 +407,7 @@ export function ManagerDecisionModal({
                   scale={scale}
                 />
                 {managerMode.showOptimalCall && (
-                  <OutcomeCard
-                    outcome={{ ...decisionPoint.aiOptimal, deltaWp: optimalDelta }}
-                    lang={lang}
-                    scale={scale}
-                  />
+                  <OutcomeCard outcome={aiOptimalOutcome} lang={lang} scale={scale} />
                 )}
               </div>
 
