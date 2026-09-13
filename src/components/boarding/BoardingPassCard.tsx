@@ -357,7 +357,7 @@ function SplitTable({
   );
 }
 
-/** 「球員數據」分頁內容：打投／聯盟／年齡／身高體重等履歷欄位，缺值一律顯示「—」；下方接統計標籤。 */
+/** 「球員數據」分頁內容：打投／聯盟／年齡等履歷欄位，缺值一律顯示「—」；下方接統計標籤。 */
 function PlayerProfileTab({
   player,
   lang,
@@ -371,13 +371,6 @@ function PlayerProfileTab({
     { label: UI.boardingPass.batsThrows, value: `${player.bats}/${player.throws}` },
     { label: UI.boardingPass.league, value: player.leagueOrigin },
     { label: UI.boardingPass.age, value: player.age !== null ? String(player.age) : '—' },
-    {
-      label: UI.boardingPass.heightWeight,
-      value:
-        player.heightCm !== null && player.weightKg !== null
-          ? `${player.heightCm}cm / ${player.weightKg}kg`
-          : '—',
-    },
   ];
 
   return (

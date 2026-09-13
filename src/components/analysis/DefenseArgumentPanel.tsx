@@ -178,7 +178,8 @@ export function DefenseArgumentPanel({
   heading,
   className,
 }: DefenseArgumentPanelProps) {
-  const totalRaw = players.reduce((sum, p) => sum + (p.fielding?.uzr ?? 0), 0);
+  const withFielding = players.filter((p) => p.fielding);
+  const totalRaw = withFielding.reduce((sum, p) => sum + (p.fielding?.uzr ?? 0), 0);
 
   return (
     <div className={cn('space-y-3', className)}>
@@ -188,20 +189,31 @@ export function DefenseArgumentPanel({
             <ShieldCheck size={15} />
             {heading[lang]}
           </h3>
-          <span className="font-[family-name:var(--font-mono-ticket)] text-xs text-ink-muted">
-            {lang === 'zh' ? '三人合計 UZR' : 'Combined UZR'}{' '}
-            <strong className="text-ink">{formatSigned(totalRaw, 1)}</strong>
-            {' → '}
-            <strong className="text-ink">{formatSigned(totalRaw * discount, 1)}</strong>
-          </span>
+          {withFielding.length > 0 && (
+            <span className="font-[family-name:var(--font-mono-ticket)] text-xs text-ink-muted">
+              {lang === 'zh' ? '合計 UZR' : 'Combined UZR'}{' '}
+              <strong className="text-ink">{formatSigned(totalRaw, 1)}</strong>
+              {' → '}
+              <strong className="text-ink">{formatSigned(totalRaw * discount, 1)}</strong>
+            </span>
+          )}
         </div>
       )}
 
-      <div className="grid gap-3 lg:grid-cols-2">
-        {players.map((p) => (
-          <DefenderCard key={p.id} player={p} discount={discount} lang={lang} />
-        ))}
-      </div>
+      {withFielding.length > 0 ? (
+        <div className="grid gap-3 lg:grid-cols-2">
+          {withFielding.map((p) => (
+            <DefenderCard key={p.id} player={p} discount={discount} lang={lang} />
+          ))}
+        </div>
+      ) : (
+        <p className="flex items-start gap-1.5 rounded-lg bg-paper-sunken px-3 py-2 text-xs leading-relaxed text-ink-muted">
+          <Info size={13} className="mt-0.5 shrink-0" />
+          {lang === 'zh'
+            ? `目前名單（${players.map((p) => p.name.zh).join('、') || '無'}）的真實 UZR／DRS／OAA 分項資料尚未查得，暫不顯示守備數字論證，避免用虛構分數冒充真實球員的守備數據。`
+            : `Verified UZR/DRS/OAA component data for this roster (${players.map((p) => p.name.en).join(', ') || 'none'}) hasn't been sourced yet, so no defensive breakdown is shown here — better than making up numbers for real players.`}
+        </p>
+      )}
     </div>
   );
 }

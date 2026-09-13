@@ -170,6 +170,7 @@ export const useReplayStore = create<ReplayState>()((set, get) => ({
       ...selection,
       flowStep: skipToReview ? 'REVIEW' : 'CHOOSE_MODE',
       cursor: 0,
+      isPlaying: false,
     }),
 
   setHomeLineup: (homeLineup) => set({ homeLineup }),
@@ -178,7 +179,7 @@ export const useReplayStore = create<ReplayState>()((set, get) => ({
   setAwayPositions: (awayPositions) => set({ awayPositions }),
   setHomePitcher: (homePitcher) => set({ homePitcher }),
   setAwayPitcher: (awayPitcher) => set({ awayPitcher }),
-  regenerate: () => set({ seedNonce: get().seedNonce + 1, cursor: 0 }),
+  regenerate: () => set({ seedNonce: get().seedNonce + 1, cursor: 0, isPlaying: false }),
 
   cursor: 0,
   isPlaying: false,
