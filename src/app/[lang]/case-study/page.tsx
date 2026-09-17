@@ -4,7 +4,6 @@ import {
   BookOpen,
   Gauge,
   Newspaper,
-  PlaneTakeoff,
   Sparkles,
   Users,
 } from 'lucide-react';
@@ -14,9 +13,9 @@ import { CrucialPlayAlert, CrucialPlayList } from '@/components/analysis/Crucial
 import { DefenseArgumentPanel } from '@/components/analysis/DefenseArgumentPanel';
 import { TempoImpactPanel } from '@/components/analysis/TempoImpactPanel';
 import { WinProbabilityChart } from '@/components/analysis/LazyCharts';
-import { BoardingPassCard } from '@/components/boarding/BoardingPassCard';
+import { MatchCard } from '@/components/cards/TeamCard';
 import { SnubComparison } from '@/components/rosters/SnubComparison';
-import { BaggageTag } from '@/components/ui/BaggageTag';
+import { StatTag } from '@/components/ui/StatTag';
 import {
   CASE_BULLPEN,
   CASE_SECTIONS,
@@ -25,8 +24,8 @@ import {
 } from '@/data/case-studies/wbc2026-jpn-ven';
 import { DEMO_GAME_REVIEW, REAL_RESULT } from '@/data/games/wbc2026-jpn-ven';
 import { playerById, rosterFor } from '@/data/rosters';
-import { createPitchLimitConfig } from '@/lib/constants';
-import { UI, bi } from '@/lib/i18n';
+import { createPitchLimitConfig, getTeam } from '@/lib/constants';
+import { bi } from '@/lib/i18n';
 import { deltaForSide } from '@/lib/sabermetrics';
 import { cn, formatSigned } from '@/lib/utils';
 import type { Bilingual, Lang, Player, WinProbabilityPoint } from '@/types/baseball';
@@ -151,6 +150,9 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
   // 這些都是建置期就固定的靜態資料，在 Server Component 裡只會算一次，不需要 useMemo。
   const pitchLimit = createPitchLimitConfig(65, true);
 
+  const venTeam = getTeam('VEN', 2026)!;
+  const jpnTeam = getTeam('JPN', 2026)!;
+
   // 遺珠與守備論證改吃 Phase 1 建好的 2026 日本隊真實名單（其餘敘事段落維持原本手寫的示範情境）。
   const jpnRoster = rosterFor(2026, 'JPN');
   const realSnubs = jpnRoster?.snubs ?? [];
@@ -194,51 +196,48 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
           {lang === 'zh' ? '核心示範專題' : 'Featured Case Study'}
         </p>
 
-        <BoardingPassCard
+        <MatchCard
           lang={lang}
           title={bi('2026 WBC 日本 vs. 委內瑞拉', '2026 WBC Japan vs. Venezuela')}
           subtitle={bi(
             '戰術復盤 · 65 球限制下的牛棚銜接與節奏控制',
             'Tactical review · bullpen sequencing and tempo control under a 65-pitch limit',
           )}
+          badge={bi('專題', 'CASE STUDY')}
+          away={{ code: venTeam.code, flagEmoji: venTeam.flagEmoji, name: venTeam.name, colorPrimary: venTeam.colorPrimary }}
+          home={{ code: jpnTeam.code, flagEmoji: jpnTeam.flagEmoji, name: jpnTeam.name, colorPrimary: jpnTeam.colorPrimary }}
           fields={[
-            { label: UI.boardingPass.flight, value: 'WBC 026' },
-            { label: UI.boardingPass.gate, value: 'C', emphasis: true },
-            { label: UI.boardingPass.seat, value: 'QF', emphasis: true },
-            { label: UI.boardingPass.boarding, value: '19:00', align: 'right' },
+            { label: bi('賽事', 'Tournament'), value: 'WBC 026' },
+            { label: bi('回合', 'Round'), value: 'QF', emphasis: true },
           ]}
-          cabin={bi('專題 CASE STUDY', 'CASE STUDY')}
-          barcodeSeed="wbc2026-jpn-ven"
-          route={{ from: 'VEN', to: 'JPN' }}
-          stubBadge="26"
         >
           <div className="flex flex-wrap gap-2">
-            <BaggageTag
+            <StatTag
               lang={lang}
               label={bi('總教練模式結果', 'Manager mode result')}
               value={`${review.game.finalScore?.away}–${review.game.finalScore?.home}`}
               footnote={bi('模擬情境，非真實比分', 'Simulated, not the real score')}
             />
-            <BaggageTag
+            <StatTag
               lang={lang}
               label={bi('最大勝率位移', 'Max ΔWP')}
               value={formatSigned(topPlay.deltaWinProbability * 100, 1)}
               unit="%"
               tone="danger"
             />
-            <BaggageTag
+            <StatTag
               lang={lang}
               label={bi('最高槓桿', 'Peak LI')}
               value={topPlay.leverageIndex.toFixed(2)}
               tone="warn"
             />
-            <BaggageTag
+            <StatTag
               lang={lang}
               label={bi('計時器違規', 'Clock violations')}
               value={review.clockViolations.length}
             />
           </div>
-        </BoardingPassCard>
+        </MatchCard>
 
         {/* 真實結果 —— 這場八強賽是真實比賽，跟上面「總教練模式」的模擬情境刻意分開標示。 */}
         <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-navy/25 bg-navy/[0.03] px-3 py-2.5">
@@ -258,8 +257,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
 
         <p className="mt-3 rounded-lg border border-alert/40 bg-alert-soft px-3 py-2 text-xs leading-relaxed text-alert">
           {lang === 'zh'
-            ? '⚠️ 上方「真實結果」已查證，但這頁其餘內容（登機證上的「總教練模式結果」、逐局比分、逐球內容、決策節點）都是假設日本總教練在七局下做了另一種調度決定的「總教練模式」情境模擬，不是真實發生的事。「球員遺珠評估」與「日本隊守備論證」兩節使用 2026 日本隊真實名單與真實預測遺珠；守備分項（UZR/DRS/OAA）目前查無可信來源，因此以說明取代虛構數字。'
-            : '⚠️ The "Real result" above is verified. Everything else on this page — the "manager mode result" on the boarding pass, the inning-by-inning score, pitch-by-pitch content, and decision points — is a simulated "manager mode" scenario imagining Japan’s manager making a different 7th-inning call. It did not really happen. The "Roster Snubs" and "Japan Defense Argument" sections use the real 2026 Japan roster and real predicted snubs; defensive components (UZR/DRS/OAA) have no verified source yet, so a note stands in for invented numbers.'}
+            ? '⚠️ 上方「真實結果」已查證，但這頁其餘內容（卡片上的「總教練模式結果」、逐局比分、逐球內容、決策節點）都是假設日本總教練在七局下做了另一種調度決定的「總教練模式」情境模擬，不是真實發生的事。「球員遺珠評估」與「日本隊守備論證」兩節使用 2026 日本隊真實名單與真實預測遺珠；守備分項（UZR/DRS/OAA）目前查無可信來源，因此以說明取代虛構數字。'
+            : '⚠️ The "Real result" above is verified. Everything else on this page — the "manager mode result" on the card, the inning-by-inning score, pitch-by-pitch content, and decision points — is a simulated "manager mode" scenario imagining Japan’s manager making a different 7th-inning call. It did not really happen. The "Roster Snubs" and "Japan Defense Argument" sections use the real 2026 Japan roster and real predicted snubs; defensive components (UZR/DRS/OAA) have no verified source yet, so a note stands in for invented numbers.'}
         </p>
       </section>
 

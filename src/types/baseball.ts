@@ -1,6 +1,5 @@
 /**
  * Baseball After Review (BAR) — 核心資料型別
- * Boarding for Game Analysis
  *
  * 命名慣例：
  *  - 對外顯示文字一律使用 `Bilingual`（中／英雙語）。

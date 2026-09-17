@@ -81,17 +81,17 @@ export function getTeam(code: TeamCode, era: Era): Team | undefined {
 }
 
 /* ------------------------------------------------------------------ */
-/* 登機證艙等對應                                                      */
+/* 球員卡分級標籤                                                      */
 /* ------------------------------------------------------------------ */
 
-export const CABIN_BY_CLASS: Record<RosterClass, { zh: string; en: string; tone: 'first' | 'business' | 'economy' | 'crew' | 'standby' }> = {
-  STARTER: { zh: '頭等艙 先發', en: 'FIRST · STARTER', tone: 'first' },
-  CLOSER: { zh: '頭等艙 終結者', en: 'FIRST · CLOSER', tone: 'first' },
-  ROTATION: { zh: '商務艙 先發輪值', en: 'BUSINESS · ROTATION', tone: 'business' },
-  BULLPEN: { zh: '商務艙 牛棚', en: 'BUSINESS · BULLPEN', tone: 'business' },
-  BENCH: { zh: '經濟艙 替補', en: 'ECONOMY · BENCH', tone: 'economy' },
-  MANAGER: { zh: '機組員 總教練', en: 'CREW · MANAGER', tone: 'crew' },
-  SNUB: { zh: '候補 遺珠', en: 'STANDBY · SNUB', tone: 'standby' },
+export const ROSTER_TIER_LABELS: Record<RosterClass, { zh: string; en: string; tone: 'primary' | 'secondary' | 'reserve' | 'staff' | 'watch' }> = {
+  STARTER: { zh: '先發', en: 'Starter', tone: 'primary' },
+  CLOSER: { zh: '終結者', en: 'Closer', tone: 'primary' },
+  ROTATION: { zh: '先發輪值', en: 'Rotation', tone: 'secondary' },
+  BULLPEN: { zh: '牛棚', en: 'Bullpen', tone: 'secondary' },
+  BENCH: { zh: '替補', en: 'Bench', tone: 'reserve' },
+  MANAGER: { zh: '總教練', en: 'Manager', tone: 'staff' },
+  SNUB: { zh: '遺珠', en: 'Snub', tone: 'watch' },
 };
 
 /* ------------------------------------------------------------------ */

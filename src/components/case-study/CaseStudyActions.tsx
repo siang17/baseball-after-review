@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Gauge, PlaneTakeoff, Sparkles } from 'lucide-react';
+import { ArrowRight, Gauge, PlayCircle, Sparkles } from 'lucide-react';
 import { localePath } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { useMatchupStore } from '@/store/useMatchupStore';
@@ -88,8 +88,8 @@ export function CaseStudyActions({ lang }: { lang: Lang }) {
             : 'Puts the not-yet-champion 2024 Venezuela roster against the very Japan team they would upset two years later, with era adjustment and the 65-pitch rule applied.'}
         </p>
         <span className="mt-3 flex items-center gap-1 text-xs font-bold text-navy">
-          <PlaneTakeoff size={13} />
-          {lang === 'zh' ? '前往訂位確認頁' : 'Go to the booking confirmation'}
+          <PlayCircle size={13} />
+          {lang === 'zh' ? '前往對戰設定頁' : 'Go to matchup setup'}
         </span>
       </button>
     </div>

@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { FileWarning, Minus, Star, TrendingDown, TrendingUp } from 'lucide-react';
-import { Barcode } from '@/components/ui/Barcode';
 import { cn, formatSigned } from '@/lib/utils';
 import type { Lang, Player, RosterSnub } from '@/types/baseball';
 
@@ -74,7 +73,7 @@ export interface SnubComparisonProps {
 }
 
 /**
- * 遺珠對照卡：候補登機證（STANDBY）造型 + 與入選者的逐項數據差。
+ * 遺珠對照卡：候補（STANDBY）造型 + 與入選者的逐項數據差。
  */
 export function SnubComparison({
   snub,
@@ -97,7 +96,7 @@ export function SnubComparison({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-alert">
             <Star size={11} strokeWidth={3} />
-            STANDBY · {lang === 'zh' ? '候補未登機' : 'Did not board'}
+            STANDBY · {lang === 'zh' ? '候補未入選' : 'Not selected'}
           </div>
           <h3 className="mt-1 truncate text-lg font-bold leading-tight text-ink">
             {snub.player.name[lang]}
@@ -147,8 +146,7 @@ export function SnubComparison({
         </table>
 
         {/* 出處 */}
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-dashed border-line pt-2">
-          <Barcode seed={snub.player.id} bars={22} className="h-4 opacity-30" />
+        <div className="mt-3 flex items-center justify-end gap-3 border-t border-dashed border-line pt-2">
           {snub.sources.length > 0 ? (
             <ul className="flex flex-wrap justify-end gap-2 text-[11px]">
               {snub.sources.map((s) => (

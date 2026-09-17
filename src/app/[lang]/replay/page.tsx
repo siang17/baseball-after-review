@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import dynamic from 'next/dynamic';
-import { ChevronLeft, ChevronRight, Pause, PlaneTakeoff, Play, RefreshCcw } from 'lucide-react';
+import { Activity, ChevronLeft, ChevronRight, Pause, Play, PlayCircle, RefreshCcw } from 'lucide-react';
 import { CrucialPlayList } from '@/components/analysis/CrucialPlayAlert';
 import { WinProbabilityChart } from '@/components/analysis/LazyCharts';
 import { BaseRunnerDiagram } from '@/components/replay/BaseRunnerDiagram';
@@ -629,7 +629,7 @@ export default function ReplayPage() {
     <div className="space-y-6">
       <header>
         <h1 className="flex items-center gap-2 text-xl font-black text-navy">
-          <PlaneTakeoff size={20} />
+          <Activity size={20} />
           {UI.nav.replay[lang]}
         </h1>
         <p className="mt-1 text-xs text-ink-muted">
@@ -725,7 +725,7 @@ export default function ReplayPage() {
                 : 'bg-plum hover:brightness-110',
             )}
           >
-            <PlaneTakeoff size={16} />
+            <PlayCircle size={16} />
             {UI.replay.generate[lang]}
           </button>
         </div>

@@ -1,20 +1,23 @@
 import Link from 'next/link';
-import { ArrowRight, Plane } from 'lucide-react';
-import { BoardingPassCard } from '@/components/boarding/BoardingPassCard';
-import { BaggageTag } from '@/components/ui/BaggageTag';
+import { Activity, ArrowRight } from 'lucide-react';
+import { MatchCard } from '@/components/cards/TeamCard';
+import { StatTag } from '@/components/ui/StatTag';
+import { getTeam } from '@/lib/constants';
 import { UI, bi, localePath } from '@/lib/i18n';
 import type { Lang } from '@/types/baseball';
 
 export default async function HomePage({ params }: { params: Promise<{ lang: Lang }> }) {
   const { lang } = await params;
+  const ven = getTeam('VEN', 2026)!;
+  const jpn = getTeam('JPN', 2026)!;
 
   return (
     <div className="space-y-8">
       {/* Hero */}
       <section className="rounded-[calc(var(--radius-pass)+4px)] border border-line bg-paper-pure px-6 py-8">
         <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.3em] text-plum">
-          <Plane size={12} />
-          Boarding for Game Analysis
+          <Activity size={12} />
+          SABERMETRICS
         </p>
         <h1 className="mt-2 text-3xl font-black leading-tight text-navy sm:text-4xl">
           Baseball After Review
@@ -41,33 +44,30 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Lan
         </div>
       </section>
 
-      {/* 登機證示範 */}
+      {/* 示範專題預覽卡 */}
       <section>
         <h2 className="mb-3 text-[10px] font-bold uppercase tracking-[0.22em] text-ink-muted">
           {lang === 'zh' ? '核心示範專題' : 'Featured Case Study'}
         </h2>
         <Link href={localePath(lang, '/case-study')} className="block transition hover:-translate-y-0.5">
-          <BoardingPassCard
+          <MatchCard
             lang={lang}
             title={bi('2026 WBC 日本 vs. 委內瑞拉', '2026 WBC Japan vs. Venezuela')}
             subtitle={bi('戰術復盤 · 65 球限制下的牛棚銜接', 'Tactical review · bullpen sequencing under a 65-pitch limit')}
+            badge={bi('專題', 'CASE STUDY')}
+            away={{ code: ven.code, flagEmoji: ven.flagEmoji, name: ven.name, colorPrimary: ven.colorPrimary }}
+            home={{ code: jpn.code, flagEmoji: jpn.flagEmoji, name: jpn.name, colorPrimary: jpn.colorPrimary }}
             fields={[
-              { label: UI.boardingPass.flight, value: 'WBC 026' },
-              { label: UI.boardingPass.gate, value: 'C', emphasis: true },
-              { label: UI.boardingPass.seat, value: 'QF', emphasis: true },
-              { label: UI.boardingPass.boarding, value: '19:00', align: 'right' },
+              { label: bi('賽事', 'Tournament'), value: 'WBC 026' },
+              { label: bi('回合', 'Round'), value: 'QF', emphasis: true },
             ]}
-            cabin={bi('專題 CASE STUDY', 'CASE STUDY')}
-            barcodeSeed="wbc2026-jpn-ven"
-            route={{ from: 'VEN', to: 'JPN' }}
-            stubBadge="26"
           >
             <div className="flex flex-wrap gap-2">
-              <BaggageTag lang={lang} label={bi('最大勝率位移', 'Max ΔWP')} value="+26.4" unit="%" tone="danger" />
-              <BaggageTag lang={lang} label={bi('最高槓桿', 'Peak LI')} value="3.41" tone="warn" />
-              <BaggageTag lang={lang} label={bi('先發用球數', 'Starter pitches')} value="65" unit="/65" />
+              <StatTag lang={lang} label={bi('最大勝率位移', 'Max ΔWP')} value="+26.4" unit="%" tone="danger" />
+              <StatTag lang={lang} label={bi('最高槓桿', 'Peak LI')} value="3.41" tone="warn" />
+              <StatTag lang={lang} label={bi('先發用球數', 'Starter pitches')} value="65" unit="/65" />
             </div>
-          </BoardingPassCard>
+          </MatchCard>
         </Link>
       </section>
     </div>

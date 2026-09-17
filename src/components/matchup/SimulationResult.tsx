@@ -19,7 +19,7 @@ export function SimulationResult({ result, lang, onReset }: { result: MatchupSim
           <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-plum">Simulation complete · 模擬完成</p>
           <h2 className="mt-1 text-2xl font-black text-ink">{away?.name[lang]} <span className="text-ink-muted">vs.</span> {home?.name[lang]}</h2>
         </div>
-        <button type="button" onClick={onReset} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink-muted hover:border-navy hover:text-navy"><RotateCcw size={15} />{lang === 'zh' ? '重新訂位' : 'New booking'}</button>
+        <button type="button" onClick={onReset} className="inline-flex items-center gap-2 rounded-full border border-line px-4 py-2 text-sm font-semibold text-ink-muted hover:border-navy hover:text-navy"><RotateCcw size={15} />{lang === 'zh' ? '重新設定' : 'New matchup'}</button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-[1fr_auto_1fr] md:items-center">

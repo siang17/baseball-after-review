@@ -3,11 +3,11 @@ import type { Lang } from '@/types/baseball';
 
 const INTRO = {
   zh: {
-    title: '旅客名單 · 球員登機證',
+    title: '球員名冊 · 球員卡',
     note: '⚠️ 示範資料：姓名／守位／教練職稱為真實名單，統計數字與棒次、輪值分工為示範用虛構值。',
   },
   en: {
-    title: 'Rosters · Player Boarding Passes',
+    title: 'Rosters · Player Cards',
     note: '⚠️ Placeholder data: names/positions/coaching titles are the real rosters; stats, batting order and rotation roles are illustrative fictional values.',
   },
 } as const;

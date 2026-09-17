@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Info, ShieldCheck } from 'lucide-react';
-import { BaggageTag } from '@/components/ui/BaggageTag';
+import { StatTag } from '@/components/ui/StatTag';
 import { bi } from '@/lib/i18n';
 import { cn, formatSigned } from '@/lib/utils';
 import type { Bilingual, Lang, Player } from '@/types/baseball';
@@ -99,13 +99,13 @@ function DefenderCard({
 
       {/* 原始 vs 校正後 */}
       <div className="mt-3 flex flex-wrap gap-2">
-        <BaggageTag
+        <StatTag
           lang={lang}
           label={bi('UZR/150（原始）', 'UZR/150 (raw)')}
           value={formatSigned(raw, 1)}
           tone={raw >= 0 ? 'good' : 'danger'}
         />
-        <BaggageTag
+        <StatTag
           lang={lang}
           label={bi('跨聯盟折算後', 'League-adjusted')}
           value={formatSigned(adjusted, 1)}
@@ -113,7 +113,7 @@ function DefenderCard({
           tone="neutral"
         />
         {rangeShare !== null && (
-          <BaggageTag
+          <StatTag
             lang={lang}
             label={bi('範圍分項佔比', 'Range share')}
             value={`${Math.round(rangeShare * 100)}`}

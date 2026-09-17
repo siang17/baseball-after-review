@@ -12,7 +12,6 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { Barcode } from '@/components/ui/Barcode';
 import { UI } from '@/lib/i18n';
 import { cn, formatSigned } from '@/lib/utils';
 import type { CrucialPlay, CrucialPlayCategory, Lang } from '@/types/baseball';
@@ -195,10 +194,9 @@ export function CrucialPlayAlert({
           </div>
         )}
 
-        {/* 頁尾：條碼 + 跳轉 */}
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <Barcode seed={play.id} bars={26} className="h-5 opacity-40" />
-          {play.pitchId && onJumpToPitch && (
+        {/* 頁尾：跳轉 */}
+        {play.pitchId && onJumpToPitch && (
+          <div className="mt-3 flex items-center justify-end gap-3">
             <button
               type="button"
               onClick={() => onJumpToPitch(play.pitchId!)}
@@ -206,8 +204,8 @@ export function CrucialPlayAlert({
             >
               {lang === 'zh' ? '跳至該球' : 'Jump to pitch'}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </article>
   );

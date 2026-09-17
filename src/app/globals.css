@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 /* ------------------------------------------------------------------ */
-/* BAR Design Tokens — 華航白色登機風                                   */
-/* China Airlines White Boarding Pass Style                            */
+/* BAR Design Tokens — 球隊資料站配色                                   */
+/* Team-card stats site palette                                        */
 /* ------------------------------------------------------------------ */
 
 @theme {
@@ -39,7 +39,7 @@
 
   --radius-pass: 14px;
 
-  /* 登機證卡片的紙質陰影 */
+  /* 卡片陰影 */
   --shadow-ticket: 0 1px 2px rgb(11 37 69 / 0.06), 0 8px 24px -16px rgb(11 37 69 / 0.35);
 }
 
@@ -53,38 +53,6 @@ body {
   color: var(--color-ink);
   font-family: var(--font-ticket);
   -webkit-font-smoothing: antialiased;
-}
-
-/* ------------------------------------------------------------------ */
-/* 登機證：撕票齒孔與虛線分隔                                          */
-/* ------------------------------------------------------------------ */
-
-@utility perforation-y {
-  /* 垂直虛線（票根左側） */
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--color-line-strong) 0 6px,
-    transparent 6px 12px
-  );
-  background-size: 1px 100%;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-@utility perforation-x {
-  background-image: repeating-linear-gradient(
-    to right,
-    var(--color-line-strong) 0 6px,
-    transparent 6px 12px
-  );
-  background-size: 100% 1px;
-  background-repeat: no-repeat;
-  background-position: center;
-}
-
-/* 票券左右兩側的半圓凹口 */
-@utility ticket-notch {
-  position: relative;
 }
 
 /* ------------------------------------------------------------------ */

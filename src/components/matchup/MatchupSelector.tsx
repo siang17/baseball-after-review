@@ -2,16 +2,17 @@
 
 import * as React from 'react';
 import {
+  Activity,
   ArrowLeftRight,
   ArrowRight,
   CalendarClock,
   Check,
   ChevronLeft,
-  PlaneTakeoff,
+  PlayCircle,
   Sparkles,
   Swords,
 } from 'lucide-react';
-import { BoardingPassCard } from '@/components/boarding/BoardingPassCard';
+import { MatchCard } from '@/components/cards/TeamCard';
 import { PITCH_LIMIT_PRESETS, TEAMS_BY_ERA, TOURNAMENTS, getTeam } from '@/lib/constants';
 import { UI, bi } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
@@ -171,7 +172,7 @@ function TeamColumn({
                   {team.name[lang]}
                 </span>
                 <span className="block text-[10px] uppercase tracking-widest text-ink-muted">
-                  GATE {team.group}
+                  {lang === 'zh' ? '分組' : 'GROUP'} {team.group}
                 </span>
               </span>
               <span className="font-[family-name:var(--font-mono-ticket)] text-sm font-bold text-navy">
@@ -197,7 +198,7 @@ export interface MatchupSelectorProps {
 }
 
 /**
- * 跨年份夢幻對決選隊流程 —— 華航機票訂位 (Flight Booking) 介面。
+ * 跨年份夢幻對決選隊流程。
  *
  * Step 1 選年代模式 → Step 2 依年份動態載入國家隊 → Step 3 確認行程並開賽。
  */
@@ -231,7 +232,7 @@ export function MatchupSelector({ lang, onConfirm, className }: MatchupSelectorP
       {/* 抬頭 */}
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-dashed border-line-strong pb-4">
         <div className="flex items-center gap-2">
-          <PlaneTakeoff size={18} className="text-navy" />
+          <Activity size={18} className="text-navy" />
           <h2 className="text-base font-bold tracking-wide text-navy">
             {UI.matchup.title[lang]}
           </h2>
@@ -347,7 +348,7 @@ export function MatchupSelector({ lang, onConfirm, className }: MatchupSelectorP
       {/* ---------------- Step 3 ---------------- */}
       {step === 'CONFIRM' && awayTeam && homeTeam && (
         <div className="space-y-4">
-          <BoardingPassCard
+          <MatchCard
             lang={lang}
             title={bi(
               `${awayTeam.shortName.zh} ${config.awayTeamYear} vs. ${homeTeam.shortName.zh} ${config.homeTeamYear}`,
@@ -357,20 +358,19 @@ export function MatchupSelector({ lang, onConfirm, className }: MatchupSelectorP
               `${TOURNAMENTS[config.awayTeamYear].name.zh} × ${TOURNAMENTS[config.homeTeamYear].name.zh}`,
               `${TOURNAMENTS[config.awayTeamYear].name.en} × ${TOURNAMENTS[config.homeTeamYear].name.en}`,
             )}
+            badge={bi('模擬對決', 'SIMULATION')}
+            away={{ code: awayTeam.code, flagEmoji: awayTeam.flagEmoji, name: awayTeam.name, colorPrimary: awayTeam.colorPrimary }}
+            home={{ code: homeTeam.code, flagEmoji: homeTeam.flagEmoji, name: homeTeam.name, colorPrimary: homeTeam.colorPrimary }}
             fields={[
-              { label: UI.boardingPass.flight, value: `BAR ${config.eraMode.replace('vs', '-')}` },
-              { label: UI.boardingPass.gate, value: `${awayTeam.group}/${homeTeam.group}`, emphasis: true },
+              { label: bi('對戰模式', 'Mode'), value: config.eraMode.replace('vs', ' vs. ') },
+              { label: bi('分組', 'Group'), value: `${awayTeam.group}/${homeTeam.group}`, emphasis: true },
               {
-                label: UI.boardingPass.seat,
+                label: bi('球場', 'Venue'),
                 value: config.venue === 'NEUTRAL' ? 'NEUTRAL' : 'HOME ADV',
                 emphasis: true,
               },
-              { label: UI.boardingPass.boarding, value: `${config.simulationRuns.toLocaleString()} runs`, align: 'right' },
+              { label: bi('模擬場次', 'Runs'), value: `${config.simulationRuns.toLocaleString()}`, align: 'right' },
             ]}
-            cabin={bi('模擬對決 SIMULATION', 'SIMULATION')}
-            barcodeSeed={`${config.eraMode}-${awayTeam.code}-${homeTeam.code}`}
-            route={{ from: awayTeam.code, to: homeTeam.code }}
-            stubBadge="VS"
           />
 
           {/* 行程選項 */}
@@ -435,7 +435,7 @@ export function MatchupSelector({ lang, onConfirm, className }: MatchupSelectorP
               onClick={() => onConfirm?.(config)}
               className="flex items-center gap-2 rounded-full bg-plum px-6 py-2.5 text-sm font-bold text-white transition hover:brightness-110 disabled:opacity-60"
             >
-              <PlaneTakeoff size={16} />
+              <PlayCircle size={16} />
               {isSimulating
                 ? lang === 'zh'
                   ? '模擬中…'
