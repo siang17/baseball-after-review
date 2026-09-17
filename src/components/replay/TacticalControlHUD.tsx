@@ -12,7 +12,7 @@ import {
   TimerOff,
   WifiOff,
 } from 'lucide-react';
-import { BaggageTag } from '@/components/ui/BaggageTag';
+import { StatTag } from '@/components/ui/StatTag';
 import { PITCH_LIMIT_PRESETS, restDaysFor } from '@/lib/constants';
 import { UI, bi } from '@/lib/i18n';
 import { ttopPenalty, velocityAfterPitches } from '@/lib/sabermetrics';
@@ -377,7 +377,7 @@ function PitchLimitPanel({
 
       {/* 吊牌 */}
       <div className="mt-3 flex flex-wrap gap-2">
-        <BaggageTag
+        <StatTag
           lang={lang}
           label={bi('第幾輪打序', 'Times through')}
           value={state.timesThroughOrder}
@@ -392,7 +392,7 @@ function PitchLimitPanel({
           tone={ttopHit ? 'warn' : 'neutral'}
         />
         {projectedVelocity !== null && baseVelocity !== null && (
-          <BaggageTag
+          <StatTag
             lang={lang}
             label={bi('推估球速', 'Projected velo')}
             value={projectedVelocity.toFixed(1)}
@@ -405,7 +405,7 @@ function PitchLimitPanel({
           />
         )}
         {config.enabled && (
-          <BaggageTag
+          <StatTag
             lang={lang}
             label={UI.hud.restDays}
             value={restDaysFor(count, config)}

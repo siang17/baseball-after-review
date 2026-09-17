@@ -14,7 +14,7 @@ import {
   ZAxis,
 } from 'recharts';
 import type { TooltipProps } from 'recharts';
-import { getTeam, METRICS, METRIC_KEYS } from '@/lib/constants';
+import { ROSTER_TIER_LABELS, getTeam, METRICS, METRIC_KEYS } from '@/lib/constants';
 import { UI, bi } from '@/lib/i18n';
 import {
   buildScatterPoints,
@@ -349,7 +349,7 @@ export function ScatterPlotStudio({ players, lang, height = 380, className }: Sc
           label={UI.scatter.rosterClass}
           lang={lang}
           options={availableRosterClasses}
-          optionLabel={(v) => UI.cabin[v][lang]}
+          optionLabel={(v) => ROSTER_TIER_LABELS[v][lang]}
           selected={filters.rosterClasses}
           onToggle={(v) =>
             setFilters((f) => ({ ...f, rosterClasses: toggleInArray(f.rosterClasses, v) }))

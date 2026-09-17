@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { AlertTriangle, Headphones, Timer, WifiOff, Zap } from 'lucide-react';
-import { BaggageTag } from '@/components/ui/BaggageTag';
+import { StatTag } from '@/components/ui/StatTag';
 import { bi } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Lang, Player, TempoImpact } from '@/types/baseball';
@@ -95,7 +95,7 @@ function TempoCard({
 
       {/* 節奏指標 */}
       <div className="mt-3 flex flex-wrap gap-2">
-        <BaggageTag
+        <StatTag
           lang={lang}
           label={bi('平均投球間隔', 'Avg tempo')}
           value={impact.avgTempoSec.toFixed(1)}
@@ -105,7 +105,7 @@ function TempoCard({
             `${impact.avgTempoRunnersOnSec.toFixed(1)}s with runners`,
           )}
         />
-        <BaggageTag
+        <StatTag
           lang={lang}
           label={bi('被逼快出手比例', 'Rushed rate')}
           value={(impact.rushedPitchRate * 100).toFixed(0)}
@@ -113,7 +113,7 @@ function TempoCard({
           footnote={bi('剩餘 < 3 秒', 'under 3s left')}
           tone={impact.rushedPitchRate >= 0.2 ? 'warn' : 'neutral'}
         />
-        <BaggageTag
+        <StatTag
           lang={lang}
           label={bi('PitchCom 改訊號', 'Sign changes')}
           value={impact.pitchComChanges}

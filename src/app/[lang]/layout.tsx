@@ -14,13 +14,12 @@ export function generateStaticParams() {
 const META: Record<Lang, Metadata> = {
   zh: {
     title: 'Baseball After Review (BAR) — 棒球復盤室',
-    description:
-      'Boarding for Game Analysis — 重新審視每一顆球的調度潛能。棒球賽事復盤與進階數據分析。',
+    description: '重新審視每一顆球的調度潛能。棒球賽事復盤與進階數據分析。',
   },
   en: {
     title: 'Baseball After Review (BAR)',
     description:
-      'Boarding for Game Analysis — reopening every pitch for what it could have been. Baseball game review and advanced analytics.',
+      'Reopening every pitch for what it could have been. Baseball game review and advanced analytics.',
   },
 };
 
@@ -52,7 +51,7 @@ export default async function RootLayout({
           <SiteHeader lang={lang} />
           <main className="mx-auto max-w-6xl px-4 py-6">{children}</main>
           <footer className="mx-auto max-w-6xl border-t border-line px-4 py-6 text-[11px] leading-relaxed text-ink-muted">
-            BAR · Baseball After Review — Boarding for Game Analysis
+            BAR · Baseball After Review
             <br />
             {FOOTER_NOTE[lang]}
           </footer>

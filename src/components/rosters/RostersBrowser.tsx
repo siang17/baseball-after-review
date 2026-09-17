@@ -2,9 +2,9 @@
 
 import * as React from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { ManagerBoardingPass, PlayerBoardingPass } from '@/components/boarding/BoardingPassCard';
+import { ManagerCard, PlayerCard } from '@/components/cards/TeamCard';
 import { SnubComparison } from '@/components/rosters/SnubComparison';
-import { BaggageTag } from '@/components/ui/BaggageTag';
+import { StatTag } from '@/components/ui/StatTag';
 import { TEAMS_BY_ERA, TOURNAMENTS, getTeam } from '@/lib/constants';
 import { UI, bi } from '@/lib/i18n';
 import { playerById, rosterFor } from '@/data/rosters';
@@ -72,7 +72,7 @@ function TeamPicker({ era, onSelect, onBack }: { era: Era; onSelect: (code: Team
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm font-semibold text-ink">{team.name[lang]}</span>
               <span className="block text-[10px] uppercase tracking-widest text-ink-muted">
-                GATE {team.group}
+                {lang === 'zh' ? '分組' : 'GROUP'} {team.group}
               </span>
             </span>
             <span className="font-[family-name:var(--font-mono-ticket)] text-sm font-bold text-navy">
@@ -95,44 +95,44 @@ function PlayerGrid({ players }: { players: Player[] }) {
   return (
     <div className="grid gap-3 lg:grid-cols-2">
       {players.map((player) => (
-        <PlayerBoardingPass key={player.id} player={player} lang={lang}>
+        <PlayerCard key={player.id} player={player} lang={lang}>
           <div className="flex flex-wrap gap-2">
             {/* OPS/WHIP 是打擊／投球資料裡唯二一定有值的欄位（schema 不可為 null），
                 所以放最前面：真實球季資料只查得到基本打擊率三圍時，這裡才不會整排空白。
                 安打／三振是計數型數據，示範球員與尚未補上真實計數的球員都固定是 0，
                 所以只在 >0 時才顯示標籤，避免看起來像「真的打了 0 支安打」。 */}
             {player.batting && (
-              <BaggageTag lang={lang} label={bi('OPS', 'OPS')} value={player.batting.ops.toFixed(3)} />
+              <StatTag lang={lang} label={bi('OPS', 'OPS')} value={player.batting.ops.toFixed(3)} />
             )}
             {player.batting?.avg != null && (
-              <BaggageTag lang={lang} label={bi('打擊率', 'AVG')} value={player.batting.avg.toFixed(3)} />
+              <StatTag lang={lang} label={bi('打擊率', 'AVG')} value={player.batting.avg.toFixed(3)} />
             )}
             {player.batting && (
-              <BaggageTag lang={lang} label={bi('上壘率', 'OBP')} value={player.batting.obp.toFixed(3)} />
+              <StatTag lang={lang} label={bi('上壘率', 'OBP')} value={player.batting.obp.toFixed(3)} />
             )}
             {player.batting && (
-              <BaggageTag lang={lang} label={bi('長打率', 'SLG')} value={player.batting.slg.toFixed(3)} />
+              <StatTag lang={lang} label={bi('長打率', 'SLG')} value={player.batting.slg.toFixed(3)} />
             )}
             {player.batting?.wrcPlus != null && (
-              <BaggageTag lang={lang} label={bi('wRC+', 'wRC+')} value={player.batting.wrcPlus} />
+              <StatTag lang={lang} label={bi('wRC+', 'wRC+')} value={player.batting.wrcPlus} />
             )}
             {player.batting?.war != null && (
-              <BaggageTag lang={lang} label={bi('WAR', 'WAR')} value={player.batting.war.toFixed(1)} />
+              <StatTag lang={lang} label={bi('WAR', 'WAR')} value={player.batting.war.toFixed(1)} />
             )}
             {player.batting && player.batting.h > 0 && (
-              <BaggageTag lang={lang} label={bi('安打', 'H')} value={player.batting.h} />
+              <StatTag lang={lang} label={bi('安打', 'H')} value={player.batting.h} />
             )}
             {player.batting && player.batting.so > 0 && (
-              <BaggageTag lang={lang} label={bi('三振', 'K')} value={player.batting.so} />
+              <StatTag lang={lang} label={bi('三振', 'K')} value={player.batting.so} />
             )}
             {player.batting?.whiffPct != null && (
-              <BaggageTag lang={lang} label={bi('揮空率', 'Whiff%')} value={`${(player.batting.whiffPct * 100).toFixed(1)}%`} />
+              <StatTag lang={lang} label={bi('揮空率', 'Whiff%')} value={`${(player.batting.whiffPct * 100).toFixed(1)}%`} />
             )}
             {player.batting?.sprintSpeed != null && (
-              <BaggageTag lang={lang} label={bi('離壘速度', 'Sprint Speed')} value={player.batting.sprintSpeed.toFixed(1)} unit="ft/s" />
+              <StatTag lang={lang} label={bi('離壘速度', 'Sprint Speed')} value={player.batting.sprintSpeed.toFixed(1)} unit="ft/s" />
             )}
             {player.fielding?.uzr150 != null && (
-              <BaggageTag
+              <StatTag
                 lang={lang}
                 label={bi('UZR/150', 'UZR/150')}
                 value={player.fielding.uzr150.toFixed(1)}
@@ -140,28 +140,28 @@ function PlayerGrid({ players }: { players: Player[] }) {
               />
             )}
             {player.fielding?.attendanceRate != null && (
-              <BaggageTag lang={lang} label={bi('出勤率', 'Attendance')} value={`${(player.fielding.attendanceRate * 100).toFixed(0)}%`} />
+              <StatTag lang={lang} label={bi('出勤率', 'Attendance')} value={`${(player.fielding.attendanceRate * 100).toFixed(0)}%`} />
             )}
             {player.pitching && (
-              <BaggageTag lang={lang} label={bi('WHIP', 'WHIP')} value={player.pitching.whip.toFixed(2)} />
+              <StatTag lang={lang} label={bi('WHIP', 'WHIP')} value={player.pitching.whip.toFixed(2)} />
             )}
             {player.pitching?.era != null && (
-              <BaggageTag lang={lang} label={bi('防禦率', 'ERA')} value={player.pitching.era.toFixed(2)} />
+              <StatTag lang={lang} label={bi('防禦率', 'ERA')} value={player.pitching.era.toFixed(2)} />
             )}
             {player.pitching?.war != null && (
-              <BaggageTag lang={lang} label={bi('WAR', 'WAR')} value={player.pitching.war.toFixed(1)} />
+              <StatTag lang={lang} label={bi('WAR', 'WAR')} value={player.pitching.war.toFixed(1)} />
             )}
             {player.pitching?.k9 != null && (
-              <BaggageTag lang={lang} label={bi('K/9', 'K/9')} value={player.pitching.k9.toFixed(1)} />
+              <StatTag lang={lang} label={bi('K/9', 'K/9')} value={player.pitching.k9.toFixed(1)} />
             )}
             {player.pitching && player.pitching.so > 0 && (
-              <BaggageTag lang={lang} label={bi('三振', 'K')} value={player.pitching.so} />
+              <StatTag lang={lang} label={bi('三振', 'K')} value={player.pitching.so} />
             )}
             {player.pitching?.pitches != null && (
-              <BaggageTag lang={lang} label={bi('用球數', 'Pitches')} value={player.pitching.pitches} />
+              <StatTag lang={lang} label={bi('用球數', 'Pitches')} value={player.pitching.pitches} />
             )}
             {player.pitching?.velocityDeclinePer25 != null && (
-              <BaggageTag
+              <StatTag
                 lang={lang}
                 label={bi('球速下滑率', 'Velo Decline')}
                 value={player.pitching.velocityDeclinePer25.toFixed(2)}
@@ -169,7 +169,7 @@ function PlayerGrid({ players }: { players: Player[] }) {
               />
             )}
           </div>
-        </PlayerBoardingPass>
+        </PlayerCard>
       ))}
     </div>
   );
@@ -194,13 +194,7 @@ function CoachingStaffCard({ roster }: { roster: Roster }) {
   const lang = useLang();
   return (
     <div className="space-y-3">
-      <ManagerBoardingPass
-        name={roster.manager.name}
-        lang={lang}
-        gate={roster.teamCode}
-        flightNo={TOURNAMENTS[roster.era].flightPrefix + ' ' + roster.era}
-        barcodeSeed={roster.manager.id}
-      />
+      <ManagerCard name={roster.manager.name} teamCode={roster.teamCode} era={roster.era} lang={lang} />
       {roster.coachingStaff.length > 0 && (
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {roster.coachingStaff.map((c) => (

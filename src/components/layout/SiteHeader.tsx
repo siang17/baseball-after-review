@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { Languages, PlaneTakeoff } from 'lucide-react';
+import { Activity, Languages } from 'lucide-react';
 import { UI, localePath, swapLangInPath } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import type { Lang } from '@/types/baseball';
@@ -74,7 +74,7 @@ export function SiteHeader({ lang }: { lang: Lang }) {
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3">
         <Link href={home} className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-md bg-navy text-white">
-            <PlaneTakeoff size={16} />
+            <Activity size={16} />
           </span>
           <span className="leading-tight">
             <span className="block text-sm font-black tracking-tight text-navy">BAR</span>

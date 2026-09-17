@@ -5,7 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-/** 決定性的字串雜湊 —— 條碼、座位號等需要 SSR/CSR 一致的地方使用。 */
+/** 決定性的字串雜湊 —— 需要 SSR/CSR 一致的隨機種子（例如模擬用的 PRNG seed）使用。 */
 export function hashString(seed: string): number {
   let h = 2166136261;
   for (let i = 0; i < seed.length; i++) {
@@ -13,17 +13,6 @@ export function hashString(seed: string): number {
     h = Math.imul(h, 16777619);
   }
   return h >>> 0;
-}
-
-/** 由 seed 產生固定的條碼線寬序列（1–4 px 交錯）。 */
-export function barcodeBars(seed: string, count = 44): number[] {
-  let h = hashString(seed);
-  const bars: number[] = [];
-  for (let i = 0; i < count; i++) {
-    h = (h * 1664525 + 1013904223) >>> 0;
-    bars.push(1 + (h % 4));
-  }
-  return bars;
 }
 
 export function formatSigned(value: number, digits = 1): string {

@@ -399,7 +399,46 @@ function buildPitcherUsage(records: PaRecord[], game: Game): GameReview['pitcher
 }
 
 /* ------------------------------------------------------------------ */
-/* 輔助：換投／代打決策節點                                              */
+/* 輔助：代跑候選——壘上跑者跟板凳球員的離壘速度差                      */
+/* ------------------------------------------------------------------ */
+
+interface PinchRunCandidate {
+  benchPlayer: Player;
+  incumbentRunner: Player;
+  edge: number;
+}
+
+/**
+ * 壘上有人、且板凳有離壘速度明顯較快的球員時，回傳最值得代跑的組合；
+ * 否則回傳 null（沒有跑者、沒有板凳、或速度差不夠明顯）。
+ * 門檻 1.0 ft/s 是經驗值，避免每次壘上有人就跳代跑卡。
+ */
+function findPinchRunCandidate(offenseRoster: Roster, bases: Bases): PinchRunCandidate | null {
+  const benchWithSpeed = offenseRoster.bench.filter((p) => p.batting?.sprintSpeed != null);
+  if (benchWithSpeed.length === 0) return null;
+
+  const allPlayers = [...offenseRoster.lineup, ...offenseRoster.bench];
+  let best: PinchRunCandidate | null = null;
+
+  for (const runnerId of bases) {
+    if (!runnerId) continue;
+    const incumbentRunner = allPlayers.find((p) => p.id === runnerId);
+    const incumbentSpeed = incumbentRunner?.batting?.sprintSpeed;
+    if (!incumbentRunner || incumbentSpeed == null) continue;
+
+    for (const benchPlayer of benchWithSpeed) {
+      const edge = benchPlayer.batting!.sprintSpeed! - incumbentSpeed;
+      if (edge > 1.0 && (!best || edge > best.edge)) {
+        best = { benchPlayer, incumbentRunner, edge };
+      }
+    }
+  }
+
+  return best;
+}
+
+/* ------------------------------------------------------------------ */
+/* 輔助：換投／代打／代跑決策節點                                        */
 /* ------------------------------------------------------------------ */
 
 function buildDecisionPoints(records: PaRecord[], homeRoster: Roster, awayRoster: Roster, game: Game): DecisionPoint[] {
@@ -407,7 +446,7 @@ function buildDecisionPoints(records: PaRecord[], homeRoster: Roster, awayRoster
     .map((r, i) => ({ r, i }))
     .filter(({ r }) => isHighLeverage(r.li) && r.event.inning >= 6)
     .sort((a, b) => b.r.li - a.r.li)
-    .slice(0, 2);
+    .slice(0, 5);
 
   const points: DecisionPoint[] = [];
 
@@ -415,7 +454,9 @@ function buildDecisionPoints(records: PaRecord[], homeRoster: Roster, awayRoster
     const offenseIsHome = r.event.offenseCode === game.homeTeamCode;
     const offenseRoster = offenseIsHome ? homeRoster : awayRoster;
     const defenseRoster = offenseIsHome ? awayRoster : homeRoster;
-    const wantsPinchHit = order % 2 === 1 && offenseRoster.bench.length > 0;
+    const pinchRunCandidate = findPinchRunCandidate(offenseRoster, r.event.basesBefore);
+    const wantsPinchRun = pinchRunCandidate !== null;
+    const wantsPinchHit = !wantsPinchRun && order % 2 === 1 && offenseRoster.bench.length > 0;
 
     const beforePitchId = r.pitches[0].id;
     const state = buildMatchState({
@@ -448,7 +489,26 @@ function buildDecisionPoints(records: PaRecord[], homeRoster: Roster, awayRoster
     let altOption: DecisionOption;
     let side: Side;
 
-    if (wantsPinchHit) {
+    if (wantsPinchRun && pinchRunCandidate) {
+      side = offenseIsHome ? 'HOME' : 'AWAY';
+      const { benchPlayer, incumbentRunner, edge } = pinchRunCandidate;
+      // 代跑影響的是盜壘/滾地球推進的期望值，不是整個打席的攻擊產能，係數比代打/換投小很多。
+      const deltaWp = Number((edge * 0.006).toFixed(3));
+      altOption = {
+        id: `${game.id}-dp${i}-pinch-runner`,
+        type: 'PINCH_RUNNER',
+        label: bi(`代跑 ${benchPlayer.name.zh}`, `Pinch run: ${benchPlayer.name.en}`),
+        detail: bi(
+          `用離壘速度較快的 ${benchPlayer.name.zh} 換下 ${incumbentRunner.name.zh}，提升盜壘與推進期望值。`,
+          `Swap in the faster ${benchPlayer.name.en} for ${incumbentRunner.name.en} to improve steal/advancement odds.`,
+        ),
+        targetPlayerId: benchPlayer.id,
+        replacedPlayerId: incumbentRunner.id,
+        projectedDeltaWp: deltaWp,
+        projectedRe24: Number((deltaWp * 2).toFixed(2)),
+        confidence: { low: deltaWp - 0.01, high: deltaWp + 0.01 },
+      };
+    } else if (wantsPinchHit) {
       side = offenseIsHome ? 'HOME' : 'AWAY';
       const bench = offenseRoster.bench[0];
       const incumbent = [...offenseRoster.lineup, ...offenseRoster.bench].find((p) => p.id === r.event.batterId);

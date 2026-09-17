@@ -116,7 +116,9 @@ function Readout({
 /* 選不同選項會讀到不同文字與數字，而不是同一句通用的「已送出」。       */
 /* ------------------------------------------------------------------ */
 
-const ALT_NARRATIVE: Record<'PINCH_HITTER' | 'PITCHING_CHANGE', Record<'up' | 'down' | 'flat', Bilingual>> = {
+type NarrativeOptionType = 'PINCH_HITTER' | 'PITCHING_CHANGE' | 'PINCH_RUNNER';
+
+const ALT_NARRATIVE: Record<NarrativeOptionType, Record<'up' | 'down' | 'flat', Bilingual>> = {
   PINCH_HITTER: {
     up: bi('代打奏效：換上的打者打出關鍵一擊，扭轉了這個打席的走向。', 'The pinch-hit paid off — the substitute came through with a timely knock that swung the at-bat.'),
     down: bi('代打未能奏效：換上的打者沒能抓住機會，情勢未見改善。', "The pinch-hit didn't pan out — the substitute came up empty, no better than sticking with the incumbent."),
@@ -127,12 +129,17 @@ const ALT_NARRATIVE: Record<'PINCH_HITTER' | 'PITCHING_CHANGE', Record<'up' | 'd
     down: bi('換投未能奏效：牛棚投手同樣遭到擊破，未能改善局勢。', "The move to the bullpen didn't help — the new pitcher got hit too."),
     flat: bi('換投對這個打席影響有限，勝率幾乎沒有變化。', 'The pitching change barely moved the needle on this at-bat.'),
   },
+  PINCH_RUNNER: {
+    up: bi('代跑奏效：換上的跑者靠速度多推進一個壘包，拉高了得分機會。', 'The pinch-runner paid off — the extra speed advanced him an extra base and raised the scoring odds.'),
+    down: bi('代跑沒能改變結果：跑者速度優勢沒能反映在這個半局的得分機會上。', "The pinch-runner didn't change the outcome — the speed upgrade never translated into a better scoring chance."),
+    flat: bi('代跑對這個半局的得分期望影響有限。', 'The pinch-runner swap barely moved the needle on this inning’s scoring chances.'),
+  },
 };
 
 /** 你的選擇對應的結果敘述；HOLD 借用歷史真實結果，其餘依 ΔWP 正負套模板。 */
 function narrativeForChoice(option: DecisionOption, delta: number, historicalResult: Bilingual): Bilingual {
   if (option.type === 'HOLD') return historicalResult;
-  if (option.type !== 'PINCH_HITTER' && option.type !== 'PITCHING_CHANGE') return historicalResult;
+  if (option.type !== 'PINCH_HITTER' && option.type !== 'PITCHING_CHANGE' && option.type !== 'PINCH_RUNNER') return historicalResult;
   const bucket = delta > 0.01 ? 'up' : delta < -0.01 ? 'down' : 'flat';
   return ALT_NARRATIVE[option.type][bucket];
 }
