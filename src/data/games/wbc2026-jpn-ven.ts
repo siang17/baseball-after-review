@@ -7,14 +7,18 @@
  */
 
 import { bi } from '@/lib/i18n';
+import { leverageIndex as computeLeverageIndex, re24 as computeRe24, winExpectancy } from '@/lib/sabermetrics';
 import { hashString } from '@/lib/utils';
 import type {
+  BaseState,
+  Bilingual,
   CrucialPlay,
   DecisionPoint,
   Game,
   GameReview,
   MatchState,
   PitchData,
+  Side,
   WinProbabilityPoint,
 } from '@/types/baseball';
 
@@ -53,6 +57,249 @@ export const REAL_RESULT = {
     'Real result: Venezuela came back to beat defending champion Japan 8-5 in the quarterfinal. Maikel García’s two-run homer in the 5th cut it to 4-5, then Wilyer Abreu’s three-run homer in the 6th put Venezuela ahead 7-5. Venezuela went on to beat the USA 3-2 in the final for its first WBC title.',
   ),
 };
+
+/** 真實逐局比分（同一份 ESPN/CBS 查證來源，兩隊加總與最終比分 8-5 對得上）。 */
+export const REAL_LINE_SCORE: Array<{ inning: number; away: number; home: number }> = [
+  { inning: 1, away: 1, home: 1 },
+  { inning: 2, away: 1, home: 0 },
+  { inning: 3, away: 0, home: 4 },
+  { inning: 4, away: 0, home: 0 },
+  { inning: 5, away: 2, home: 0 },
+  { inning: 6, away: 3, home: 0 },
+  { inning: 7, away: 0, home: 0 },
+  { inning: 8, away: 1, home: 0 },
+  { inning: 9, away: 0, home: 0 },
+];
+
+/* ------------------------------------------------------------------ */
+/* 真實關鍵事件                                                        */
+/*                                                                     */
+/* 6 個真實事件（5 支全壘打＋1 次偷本壘），球員與比分皆已查證（同         */
+/* REAL_RESULT 的 ESPN/CBS 來源）。leverageIndex / re24 用當下真實的     */
+/* 局數、出局數、壘上狀況、比分餵進 `@/lib/sabermetrics` 現成的函式      */
+/* 算出——出局數／壘上跑者「身分」等文字沒明講的細節，用最合理的估計      */
+/* 補上並在此註明，數值本身不是杜撰，是依真實比分/敘述推算的近似值。     */
+/* ------------------------------------------------------------------ */
+
+function realState(input: {
+  inning: number;
+  half: 'TOP' | 'BOTTOM';
+  outs: 0 | 1 | 2;
+  bases: BaseState;
+  score: { home: number; away: number };
+  offense: Side;
+}): MatchState {
+  return {
+    gameId: 'wbc2026-jpn-ven-real',
+    inning: input.inning,
+    half: input.half,
+    outs: input.outs,
+    balls: 0,
+    strikes: 0,
+    bases: input.bases,
+    score: input.score,
+    batterId: '',
+    pitcherId: '',
+    catcherId: '',
+    offense: input.offense,
+    pitcherPitchCount: 0,
+    timesThroughOrder: 1,
+    winProbabilityHome: 0,
+    leverageIndex: 0,
+    challengesRemaining: { home: 1, away: 1 },
+  };
+}
+
+interface RealPlaySpec {
+  id: string;
+  category: CrucialPlay['category'];
+  inning: number;
+  half: 'TOP' | 'BOTTOM';
+  before: { outs: 0 | 1 | 2; bases: BaseState; score: { home: number; away: number } };
+  runsScored: number;
+  beneficiary: Side;
+  title: Bilingual;
+  description: Bilingual;
+  breakdown: Bilingual[];
+  severity: CrucialPlay['severity'];
+}
+
+function buildRealPlay(spec: RealPlaySpec): CrucialPlay {
+  const offense: Side = spec.half === 'TOP' ? 'AWAY' : 'HOME';
+  const before = realState({ inning: spec.inning, half: spec.half, outs: spec.before.outs, bases: spec.before.bases, score: spec.before.score, offense });
+  const scoreAfter = {
+    home: spec.before.score.home + (offense === 'HOME' ? spec.runsScored : 0),
+    away: spec.before.score.away + (offense === 'AWAY' ? spec.runsScored : 0),
+  };
+  // 全壘打／偷本壘成功後壘上清空；兩種事件都不會增加出局數，出局數沿用打席前的值。
+  const afterBases: BaseState = [null, null, null];
+  const after = realState({ inning: spec.inning, half: spec.half, outs: spec.before.outs, bases: afterBases, score: scoreAfter, offense });
+
+  const wpBefore = winExpectancy(before);
+  const wpAfter = winExpectancy(after);
+  const deltaWinProbability = Number((wpAfter - wpBefore).toFixed(3));
+
+  return {
+    id: spec.id,
+    gameId: 'wbc2026-jpn-ven-real',
+    pitchId: null,
+    decisionPointId: null,
+    category: spec.category,
+    inning: spec.inning,
+    half: spec.half,
+    deltaWinProbability,
+    leverageIndex: computeLeverageIndex(before),
+    re24: computeRe24({ bases: before.bases, outs: before.outs }, { bases: after.bases, outs: after.outs }, spec.runsScored),
+    beneficiary: spec.beneficiary,
+    title: spec.title,
+    description: spec.description,
+    breakdown: spec.breakdown,
+    severity: spec.severity,
+    videoUrl: null,
+  };
+}
+
+export const REAL_CRUCIAL_PLAYS: CrucialPlay[] = [
+  buildRealPlay({
+    id: 'real-t1-acuna-hr',
+    category: 'PLAY',
+    inning: 1,
+    half: 'TOP',
+    before: { outs: 0, bases: [null, null, null], score: { home: 0, away: 0 } },
+    runsScored: 1,
+    beneficiary: 'AWAY',
+    title: bi('一局上 Acuña Jr. 首打席開局全壘打', 'Acuña Jr. leads off the game with a homer'),
+    description: bi(
+      'Ronald Acuña Jr. 對山本由伸首打席開局全壘打（右中外野, 401 英尺）。',
+      "Ronald Acuña Jr. led off the game with a home run to right-center (401 ft) off Yoshinobu Yamamoto.",
+    ),
+    breakdown: [
+      bi('全場第一球打席就先馳得點，委內瑞拉 1-0 領先。', 'First pitch of the game becomes a lead-off run — Venezuela up 1-0.'),
+      bi('大谷翔平緊接著在一局下回敬開局砲，這是 WBC 史上首次單場雙方都開局全壘打。', "Shohei Ohtani answered with his own leadoff homer in the bottom half — the first time in WBC history both teams opened a game with a leadoff home run."),
+    ],
+    severity: 'WARNING',
+  }),
+  buildRealPlay({
+    id: 'real-b1-ohtani-hr',
+    category: 'PLAY',
+    inning: 1,
+    half: 'BOTTOM',
+    before: { outs: 0, bases: [null, null, null], score: { home: 0, away: 1 } },
+    runsScored: 1,
+    beneficiary: 'HOME',
+    title: bi('一局下 大谷翔平開局全壘打追平', 'Ohtani ties it with his own leadoff homer'),
+    description: bi(
+      '大谷翔平首打席開局全壘打（中外野, 427 英尺），扳平 1-1。',
+      'Shohei Ohtani led off the bottom of the 1st with a 427-foot home run to center, tying the game 1-1.',
+    ),
+    breakdown: [
+      bi('史上首次 WBC 單場兩隊都開局全壘打。', 'The first-ever WBC game with leadoff homers from both teams.'),
+    ],
+    severity: 'WARNING',
+  }),
+  buildRealPlay({
+    id: 'real-b3-morishita-hr',
+    category: 'PLAY',
+    inning: 3,
+    half: 'BOTTOM',
+    before: { outs: 1, bases: ['x', 'x', 'x'], score: { home: 2, away: 2 } },
+    runsScored: 3,
+    beneficiary: 'HOME',
+    title: bi('三局下 森下翔太滿貫砲，日本 5-2 領先', 'Morishita’s bases-loaded homer puts Japan up 5-2'),
+    description: bi(
+      '佐藤先以二壘打攻下一分，森下翔太接著轟出三分砲（左外野, 388 英尺），日本 5-2 領先。',
+      'A Sato RBI double set the table, then Shota Morishita hit a three-run homer to left (388 ft), putting Japan up 5-2.',
+    ),
+    breakdown: [
+      bi('壘上狀況依真實得分敘述（"Ohtani 得分、Sato 得分" 皆隨此轟回本壘）推算為滿壘，非逐球查證數字。', 'Base state (bases loaded) is inferred from the reporting that both Ohtani and Sato scored on the play — an estimate, not a pitch-by-pitch verified state.'),
+    ],
+    severity: 'CRITICAL',
+  }),
+  buildRealPlay({
+    id: 'real-t5-garcia-hr',
+    category: 'PLAY',
+    inning: 5,
+    half: 'TOP',
+    before: { outs: 1, bases: [null, 'x', null], score: { home: 5, away: 2 } },
+    runsScored: 2,
+    beneficiary: 'AWAY',
+    title: bi('五局上 Maikel García 兩分砲追到 4-5', 'García’s two-run homer cuts it to 4-5'),
+    description: bi(
+      'Maikel García 兩分砲（左中外野, 406 英尺），Jackson Chourio 一併回本壘，追到 4-5。',
+      'Maikel García hit a two-run homer to left-center (406 ft), scoring Jackson Chourio, to cut Japan’s lead to 4-5.',
+    ),
+    breakdown: [
+      bi('委內瑞拉牛棚接管比賽前的關鍵追分，扭轉了場上氣勢。', 'The key at-bat that started Venezuela’s comeback momentum before their bullpen took over.'),
+    ],
+    severity: 'WARNING',
+  }),
+  buildRealPlay({
+    id: 'real-t6-abreu-hr',
+    category: 'PLAY',
+    inning: 6,
+    half: 'TOP',
+    before: { outs: 1, bases: ['x', 'x', null], score: { home: 5, away: 4 } },
+    runsScored: 3,
+    beneficiary: 'AWAY',
+    title: bi('六局上 Wilyer Abreu 三分砲反超，委內瑞拉 7-5', 'Abreu’s go-ahead three-run homer puts Venezuela up 7-5'),
+    description: bi(
+      'Wilyer Abreu 三分砲（右外野, 409 英尺），Ezequiel Tovar 與 Gleyber Torres 一併回本壘，委內瑞拉 7-5 反超。',
+      'Wilyer Abreu launched a three-run homer to right (409 ft), scoring Ezequiel Tovar and Gleyber Torres, and Venezuela took a 7-5 lead.',
+    ),
+    breakdown: [
+      bi('這支全壘打把整場比賽的優勢徹底交給委內瑞拉，日本再也沒能追平。', 'This swing handed the advantage to Venezuela for good — Japan never tied it again.'),
+    ],
+    severity: 'CRITICAL',
+  }),
+  buildRealPlay({
+    id: 'real-t8-tovar-steal-home',
+    category: 'BASERUNNING',
+    inning: 8,
+    half: 'TOP',
+    before: { outs: 2, bases: [null, null, 'x'], score: { home: 5, away: 7 } },
+    runsScored: 1,
+    beneficiary: 'AWAY',
+    title: bi('八局上 Ezequiel Tovar 牽制失誤偷回本壘', 'Tovar scores on a pickoff-throw error'),
+    description: bi(
+      '種市篤暉牽制三壘失誤，Ezequiel Tovar 趁機衝回本壘，委內瑞拉 8-5。',
+      'Atsuki Taneichi’s pickoff throw to third got away, and Ezequiel Tovar raced home to make it 8-5.',
+    ),
+    breakdown: [
+      bi('這一分是全場最終比分的最後一塊拼圖，最終定格 8-5。', 'This run set the final margin at 8-5.'),
+    ],
+    severity: 'INFO',
+  }),
+];
+
+/** 真實得分時間軸（給「比賽過程」逐項列表用，跟 REAL_LINE_SCORE 是同一份查證來源）。 */
+export const REAL_SCORING_TIMELINE: Array<{ label: Bilingual; scoreAfter: { away: number; home: number } }> = [
+  { label: bi('一局上 · Acuña Jr. 開局全壘打', 'Top 1st · Acuña Jr. leadoff homer'), scoreAfter: { away: 1, home: 0 } },
+  { label: bi('一局下 · 大谷翔平開局全壘打追平', 'Bottom 1st · Ohtani ties it with a leadoff homer'), scoreAfter: { away: 1, home: 1 } },
+  { label: bi('二局上 · 委內瑞拉再得 1 分', 'Top 2nd · Venezuela adds a run'), scoreAfter: { away: 2, home: 1 } },
+  { label: bi('三局下 · 佐藤二壘打、森下翔太三分砲', 'Bottom 3rd · Sato RBI double, Morishita 3-run homer'), scoreAfter: { away: 2, home: 5 } },
+  { label: bi('五局上 · Maikel García 兩分砲', 'Top 5th · Maikel García 2-run homer'), scoreAfter: { away: 4, home: 5 } },
+  { label: bi('六局上 · Wilyer Abreu 三分砲反超', 'Top 6th · Wilyer Abreu 3-run go-ahead homer'), scoreAfter: { away: 7, home: 5 } },
+  { label: bi('八局上 · Ezequiel Tovar 偷本壘', 'Top 8th · Ezequiel Tovar steals home'), scoreAfter: { away: 8, home: 5 } },
+];
+
+/** 真實投球紀錄——只列查證到姓名與局數的投手；雙方牛棚其餘未點名投手不編造。 */
+export const REAL_PITCHING_USAGE: Array<{
+  playerId: string;
+  side: Side;
+  ip: number;
+  hitsAllowed: number;
+  runsAllowed: number;
+  strikeouts: number;
+  walks: number;
+  homeRunsAllowed: number;
+  decision: 'W' | 'L' | 'S' | null;
+}> = [
+  { playerId: '2026-ven-rp10', side: 'AWAY', ip: 2.2, hitsAllowed: 3, runsAllowed: 5, strikeouts: 4, walks: 3, homeRunsAllowed: 2, decision: null },
+  { playerId: '2026-ven-sp5', side: 'AWAY', ip: 2.1, hitsAllowed: 1, runsAllowed: 0, strikeouts: 0, walks: 0, homeRunsAllowed: 0, decision: 'W' },
+  { playerId: '2026-ven-rp6', side: 'AWAY', ip: 1.0, hitsAllowed: 0, runsAllowed: 0, strikeouts: 0, walks: 0, homeRunsAllowed: 0, decision: 'S' },
+  { playerId: '2026-jpn-sp6', side: 'HOME', ip: 4.0, hitsAllowed: 4, runsAllowed: 2, strikeouts: 5, walks: 1, homeRunsAllowed: 1, decision: null },
+  { playerId: '2026-jpn-sp2', side: 'HOME', ip: 1.0, hitsAllowed: 3, runsAllowed: 3, strikeouts: 0, walks: 0, homeRunsAllowed: 0, decision: 'L' },
+];
 
 /* ------------------------------------------------------------------ */
 /* 勝率曲線                                                            */

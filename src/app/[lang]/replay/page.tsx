@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { useLang } from '@/components/layout/LangProvider';
 import { useReplayStore } from '@/store/useReplayStore';
 import type {
+  DecisionPoint,
   Era,
   Game,
   MatchState,
@@ -325,6 +326,7 @@ function ReviewStep({
   const openDecision = useReplayStore((s) => s.openDecision);
   const resolveDecision = useReplayStore((s) => s.resolveDecision);
   const dismissDecision = useReplayStore((s) => s.dismissDecision);
+  const decisionLog = useReplayStore((s) => s.decisionLog);
 
   // 決策艙是 dynamic import，所以不在 /replay 的首次載入 bundle 裡。
   // 這個復盤畫面本身只有在使用者選完比賽、按下「產生逐球復盤」之後才會掛載，
@@ -353,11 +355,28 @@ function ReviewStep({
   const clampedCursor = Math.min(cursor, pitches.length - 1);
   const pitch = pitches[clampedCursor];
 
-  // 自動播放：每顆球間隔依 playbackSpeed 縮放，遇到決策彈窗（activeDecision）或播到最後一球就自動暫停。
+  // beforePitchId → DecisionPoint，讓自動播放能在播到那顆球時當場彈出決策卡。
+  const decisionByPitchId = React.useMemo(() => {
+    const map = new Map<string, DecisionPoint>();
+    for (const dp of review.decisionPoints) map.set(dp.beforePitchId, dp);
+    return map;
+  }, [review.decisionPoints]);
+  const resolvedDecisionIds = React.useMemo(
+    () => new Set(decisionLog.map((r) => r.decisionPointId)),
+    [decisionLog],
+  );
+
+  // 自動播放：每顆球間隔依 playbackSpeed 縮放；播到埋了決策點的球就自然彈出事件卡並暫停
+  // （openDecision 本身就會把 isPlaying 設回 false，不用在這裡重複設），或播到最後一球就自動暫停。
   React.useEffect(() => {
     if (!isPlaying) return;
     if (activeDecision) {
       setPlaying(false);
+      return;
+    }
+    const dueDecision = decisionByPitchId.get(pitch.id);
+    if (dueDecision && !resolvedDecisionIds.has(dueDecision.id)) {
+      openDecision(dueDecision);
       return;
     }
     if (clampedCursor >= pitches.length - 1) {
@@ -366,7 +385,19 @@ function ReviewStep({
     }
     const id = setTimeout(() => setCursor(clampedCursor + 1), 1800 / playbackSpeed);
     return () => clearTimeout(id);
-  }, [isPlaying, activeDecision, clampedCursor, pitches.length, playbackSpeed, setCursor, setPlaying]);
+  }, [
+    isPlaying,
+    activeDecision,
+    clampedCursor,
+    pitch.id,
+    pitches.length,
+    playbackSpeed,
+    decisionByPitchId,
+    resolvedDecisionIds,
+    openDecision,
+    setCursor,
+    setPlaying,
+  ]);
 
   const state = React.useMemo(() => matchStateFromPitch(pitch, review), [pitch, review]);
   const pitcher = React.useMemo(() => playerById(pitch.pitcherId), [pitch.pitcherId]);

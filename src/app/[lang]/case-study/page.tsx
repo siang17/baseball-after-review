@@ -22,61 +22,20 @@ import {
   CASE_TEMPO,
   NPB_DEFENSE_DISCOUNT,
 } from '@/data/case-studies/wbc2026-jpn-ven';
-import { DEMO_GAME_REVIEW, REAL_RESULT } from '@/data/games/wbc2026-jpn-ven';
+import {
+  DEMO_GAME_REVIEW,
+  REAL_CRUCIAL_PLAYS,
+  REAL_LINE_SCORE,
+  REAL_PITCHING_USAGE,
+  REAL_RESULT,
+  REAL_SCORING_TIMELINE,
+} from '@/data/games/wbc2026-jpn-ven';
 import { playerById, rosterFor } from '@/data/rosters';
 import { createPitchLimitConfig, getTeam } from '@/lib/constants';
 import { bi } from '@/lib/i18n';
 import { deltaForSide } from '@/lib/sabermetrics';
 import { cn, formatSigned } from '@/lib/utils';
-import type { Bilingual, Lang, Player, WinProbabilityPoint } from '@/types/baseball';
-
-/* ------------------------------------------------------------------ */
-/* 比賽過程：從勝率曲線反推每半局得分                                  */
-/*                                                                     */
-/* `DEMO_WIN_PROBABILITY` 的每一點都帶著當下比分快照，同一半局內比分不變，  */
-/* 只在半局交接處才變動。用這個特性把逐局比分表跟得分時間軸算出來，       */
-/* 不是另外編一組數字 —— 跟頁面其餘地方引用的是同一份資料。              */
-/* ------------------------------------------------------------------ */
-
-interface HalfInningRuns {
-  inning: number;
-  half: 'TOP' | 'BOTTOM';
-  awayRuns: number;
-  homeRuns: number;
-}
-
-function computeHalfInningRuns(
-  points: WinProbabilityPoint[],
-  finalScore: { home: number; away: number },
-): HalfInningRuns[] {
-  const groups: Array<{ inning: number; half: 'TOP' | 'BOTTOM'; score: { home: number; away: number } }> = [];
-  for (const p of points) {
-    const last = groups[groups.length - 1];
-    if (!last || last.inning !== p.inning || last.half !== p.half) {
-      groups.push({ inning: p.inning, half: p.half, score: p.score });
-    }
-  }
-  return groups.map((g, i) => {
-    const next = groups[i + 1]?.score ?? finalScore;
-    return {
-      inning: g.inning,
-      half: g.half,
-      awayRuns: next.away - g.score.away,
-      homeRuns: next.home - g.score.home,
-    };
-  });
-}
-
-function computeLineScore(halfInnings: HalfInningRuns[]): Array<{ inning: number; away: number; home: number }> {
-  const byInning = new Map<number, { away: number; home: number }>();
-  for (const h of halfInnings) {
-    const entry = byInning.get(h.inning) ?? { away: 0, home: 0 };
-    if (h.half === 'TOP') entry.away += h.awayRuns;
-    else entry.home += h.homeRuns;
-    byInning.set(h.inning, entry);
-  }
-  return [...byInning.entries()].sort((a, b) => a[0] - b[0]).map(([inning, runs]) => ({ inning, ...runs }));
-}
+import type { Bilingual, Lang, Player } from '@/types/baseball';
 
 /* ------------------------------------------------------------------ */
 /* 球員查找                                                            */
@@ -159,33 +118,16 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
   const realDefenders = JPN_DEFENSIVE_CORE_IDS.map((id) => playerById(id)).filter(
     (p): p is Player => p !== null,
   );
-  const topPlay = [...review.crucialPlays].sort(
+
+  // 「互動情境模擬」段落仍然用假設性的 DEMO_CRUCIAL_PLAYS 找出模擬情境裡的最大波動。
+  const topSimulatedPlay = [...review.crucialPlays].sort(
     (a, b) => Math.abs(b.deltaWinProbability) - Math.abs(a.deltaWinProbability),
   )[0];
-
-  // 比賽過程：逐局比分表 + 得分時間軸，兩者都是從 winProbability 反推，不是另存一組數字。
-  const finalScore = review.game.finalScore ?? { home: 0, away: 0 };
-  const halfInningRuns = computeHalfInningRuns(review.winProbability, finalScore);
-  const lineScore = computeLineScore(halfInningRuns);
-  const scoringPlays = (() => {
-    let runningAway = 0;
-    let runningHome = 0;
-    return halfInningRuns
-      .filter((h) => h.awayRuns > 0 || h.homeRuns > 0)
-      .map((h) => {
-        runningAway += h.awayRuns;
-        runningHome += h.homeRuns;
-        const scorer = h.half === 'TOP' ? 'VEN' : 'JPN';
-        const runs = h.half === 'TOP' ? h.awayRuns : h.homeRuns;
-        return {
-          label: bi(
-            `第 ${h.inning} 局${h.half === 'TOP' ? '上' : '下'} · ${scorer} 得 ${runs} 分`,
-            `Inning ${h.inning} ${h.half === 'TOP' ? 'top' : 'bottom'} · ${scorer} scores ${runs}`,
-          ),
-          scoreAfter: { away: runningAway, home: runningHome },
-        };
-      });
-  })();
+  // 「真實關鍵事件」用真實查證到的 6 個事件裡最大波動的一個當作 Hero 卡片與精選卡。
+  const topRealPlay = [...REAL_CRUCIAL_PLAYS].sort(
+    (a, b) => Math.abs(b.deltaWinProbability) - Math.abs(a.deltaWinProbability),
+  )[0];
+  const realHomeRunCount = REAL_CRUCIAL_PLAYS.filter((p) => p.category === 'PLAY').length;
 
   return (
     <div>
@@ -214,32 +156,32 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
           <div className="flex flex-wrap gap-2">
             <StatTag
               lang={lang}
-              label={bi('總教練模式結果', 'Manager mode result')}
-              value={`${review.game.finalScore?.away}–${review.game.finalScore?.home}`}
-              footnote={bi('模擬情境，非真實比分', 'Simulated, not the real score')}
+              label={bi('真實比分', 'Real score')}
+              value={`${REAL_RESULT.finalScore.away}–${REAL_RESULT.finalScore.home}`}
+              footnote={bi('VEN 逆轉淘汰衛冕軍日本', 'VEN upsets defending champion JPN')}
             />
             <StatTag
               lang={lang}
-              label={bi('最大勝率位移', 'Max ΔWP')}
-              value={formatSigned(topPlay.deltaWinProbability * 100, 1)}
+              label={bi('真實最大勝率位移', 'Real max ΔWP')}
+              value={formatSigned(topRealPlay.deltaWinProbability * 100, 1)}
               unit="%"
               tone="danger"
             />
             <StatTag
               lang={lang}
-              label={bi('最高槓桿', 'Peak LI')}
-              value={topPlay.leverageIndex.toFixed(2)}
+              label={bi('真實最高槓桿', 'Real peak LI')}
+              value={topRealPlay.leverageIndex.toFixed(2)}
               tone="warn"
             />
             <StatTag
               lang={lang}
-              label={bi('計時器違規', 'Clock violations')}
-              value={review.clockViolations.length}
+              label={bi('全場全壘打', 'Home runs')}
+              value={realHomeRunCount}
             />
           </div>
         </MatchCard>
 
-        {/* 真實結果 —— 這場八強賽是真實比賽，跟上面「總教練模式」的模擬情境刻意分開標示。 */}
+        {/* 真實結果 —— 這場八強賽是真實比賽，跟下方「互動情境模擬」段落刻意分開標示。 */}
         <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-navy/25 bg-navy/[0.03] px-3 py-2.5">
           <Newspaper size={15} className="mt-0.5 shrink-0 text-navy" />
           <div>
@@ -257,8 +199,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
 
         <p className="mt-3 rounded-lg border border-alert/40 bg-alert-soft px-3 py-2 text-xs leading-relaxed text-alert">
           {lang === 'zh'
-            ? '⚠️ 上方「真實結果」已查證，但這頁其餘內容（卡片上的「總教練模式結果」、逐局比分、逐球內容、決策節點）都是假設日本總教練在七局下做了另一種調度決定的「總教練模式」情境模擬，不是真實發生的事。「球員遺珠評估」與「日本隊守備論證」兩節使用 2026 日本隊真實名單與真實預測遺珠；守備分項（UZR/DRS/OAA）目前查無可信來源，因此以說明取代虛構數字。'
-            : '⚠️ The "Real result" above is verified. Everything else on this page — the "manager mode result" on the card, the inning-by-inning score, pitch-by-pitch content, and decision points — is a simulated "manager mode" scenario imagining Japan’s manager making a different 7th-inning call. It did not really happen. The "Roster Snubs" and "Japan Defense Argument" sections use the real 2026 Japan roster and real predicted snubs; defensive components (UZR/DRS/OAA) have no verified source yet, so a note stands in for invented numbers.'}
+            ? '⚠️ 「比賽過程」「真實關鍵事件」「真實牛棚使用」「球員遺珠評估」「日本隊守備論證」都是查證過的真實資料（比分/事件來源同上方「真實結果」；守備分項 UZR/DRS/OAA 除外，目前查無可信來源，以說明取代虛構數字）。「互動情境模擬」段落（含決策節點、節奏 Tempo、示範牛棚銜接數字）是假設日本教練在七局下做了另一種調度決定的練習情境，不是真實發生的事，請以段落內的標示為準。'
+            : '⚠️ "Game Flow," "Real Crucial Events," "Real Bullpen Usage," "Roster Snubs," and "Japan Defense Argument" are all verified real data (scores/events share the source cited under "Real result" above; the exception is UZR/DRS/OAA defensive components, which have no verified source yet, so a note stands in for invented numbers). The "Interactive What-If Simulation" section (decision points, tempo, and the illustrative bullpen numbers) is a hypothetical exercise imagining a different 7th-inning call — it did not really happen; look for the label on that section.'}
         </p>
       </section>
 
@@ -272,8 +214,8 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
             lang={lang}
             title={CASE_SECTIONS[0].label}
             blurb={bi(
-              '以下是「總教練模式」情境的逐局比分，不是真實比分（真實結果見上方 Hero 卡片）——但跟本頁其餘分析引用的是同一份模擬資料，不是另外編的數字。',
-              'This is the inning-by-inning line for the "manager mode" simulation, not the real score (see the Real Result callout above) — but it is derived from the same simulated data used across this page, not separately invented numbers.',
+              '以下是這場八強賽真實的逐局比分（ESPN boxscore gameId 401845798，交叉核對 CBS Sports 報導），不是總教練模式的模擬情境。',
+              'The real inning-by-inning line for this quarterfinal (ESPN boxscore gameId 401845798, cross-checked against CBS Sports) — not the manager-mode simulation.',
             )}
           />
 
@@ -282,7 +224,7 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
               <thead>
                 <tr className="border-b border-line text-ink-muted">
                   <th className="px-3 py-2 text-left font-semibold">{lang === 'zh' ? '隊伍' : 'Team'}</th>
-                  {lineScore.map((row) => (
+                  {REAL_LINE_SCORE.map((row) => (
                     <th key={row.inning} className="px-2 py-2 text-center font-semibold">
                       {row.inning}
                     </th>
@@ -293,28 +235,28 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
               <tbody>
                 <tr className="border-b border-line-strong">
                   <td className="px-3 py-2 text-left font-bold text-ink">🇻🇪 VEN</td>
-                  {lineScore.map((row) => (
+                  {REAL_LINE_SCORE.map((row) => (
                     <td key={row.inning} className="px-2 py-2 text-center tabular-nums text-ink">
                       {row.away || <span className="text-ink-muted">·</span>}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-center text-base font-black text-navy">{finalScore.away}</td>
+                  <td className="px-3 py-2 text-center text-base font-black text-navy">{REAL_RESULT.finalScore.away}</td>
                 </tr>
                 <tr>
                   <td className="px-3 py-2 text-left font-bold text-ink">🇯🇵 JPN</td>
-                  {lineScore.map((row) => (
+                  {REAL_LINE_SCORE.map((row) => (
                     <td key={row.inning} className="px-2 py-2 text-center tabular-nums text-ink">
                       {row.home || <span className="text-ink-muted">·</span>}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-center text-base font-black text-navy">{finalScore.home}</td>
+                  <td className="px-3 py-2 text-center text-base font-black text-navy">{REAL_RESULT.finalScore.home}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <ol className="mt-4 space-y-2">
-            {scoringPlays.map((play, i) => (
+            {REAL_SCORING_TIMELINE.map((play, i) => (
               <li
                 key={i}
                 className="flex items-center gap-2.5 rounded-lg border border-line bg-paper-pure px-3 py-2 text-xs"
@@ -385,22 +327,97 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
             lang={lang}
             title={CASE_SECTIONS[3].label}
             blurb={bi(
-              '全場勝率曲線與最高 ΔWP 的一球。七局下的失分不是失投的意外，而是一連串可預期條件的匯流：第三輪打序、58 球、LI 3.41。',
-              'The full win-probability curve and the single largest swing. The 7th-inning breakdown was not a fluke mistake pitch — it was the convergence of three predictable conditions: third time through, 58 pitches, an LI of 3.41.',
+              '先看這場真實比賽的關鍵事件；下半段則是「總教練模式」的假設情境——如果日本教練在七局下做了另一種調度，勝率曲線與決策會怎麼走。',
+              'Start with the real crucial events from the actual game; the second half is the "manager mode" what-if scenario — how the win-probability curve and decision would have gone had Japan\'s manager made a different 7th-inning call.',
             )}
           />
 
-          <WinProbabilityChart
-            points={review.winProbability}
-            crucialPlays={review.crucialPlays}
-            lang={lang}
-            homeLabel="JPN"
-            awayLabel="VEN"
-            height={320}
-          />
+          {/* 真實關鍵事件 */}
+          <h3 className="flex items-center gap-1.5 text-sm font-bold text-navy">
+            <Newspaper size={15} />
+            {lang === 'zh' ? '真實關鍵事件' : 'Real Crucial Events'}
+          </h3>
+          <div className="mt-3">
+            <CrucialPlayAlert play={topRealPlay} lang={lang} featured />
+          </div>
+          <div className="mt-4">
+            <CrucialPlayList
+              plays={REAL_CRUCIAL_PLAYS.filter((p) => p.id !== topRealPlay.id)}
+              lang={lang}
+            />
+          </div>
+
+          {/* 真實牛棚使用 */}
+          <h3 className="mt-6 text-sm font-bold text-navy">
+            {lang === 'zh' ? '真實牛棚使用' : 'Real Bullpen Usage'}
+          </h3>
+          <p className="mt-1 text-xs leading-relaxed text-ink-muted">
+            {lang === 'zh'
+              ? '只列查證到姓名與局數的投手，雙方牛棚其餘未點名的投手不編造。'
+              : 'Only pitchers whose name and innings were confirmed by the source are listed — the rest of each bullpen goes unnamed rather than invented.'}
+          </p>
+          <div className="mt-2 overflow-x-auto rounded-[var(--radius-pass)] border border-line bg-paper-pure">
+            <table className="w-full min-w-[480px] border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-line text-ink-muted">
+                  <th className="px-3 py-2 text-left font-semibold">{lang === 'zh' ? '投手' : 'Pitcher'}</th>
+                  <th className="px-2 py-2 text-center font-semibold">IP</th>
+                  <th className="px-2 py-2 text-center font-semibold">H</th>
+                  <th className="px-2 py-2 text-center font-semibold">R</th>
+                  <th className="px-2 py-2 text-center font-semibold">BB</th>
+                  <th className="px-2 py-2 text-center font-semibold">K</th>
+                  <th className="px-2 py-2 text-center font-semibold">HR</th>
+                  <th className="px-3 py-2 text-center font-semibold">{lang === 'zh' ? '結果' : 'Dec.'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {REAL_PITCHING_USAGE.map((line) => {
+                  const pitcher = playerById(line.playerId);
+                  return (
+                    <tr key={line.playerId} className="border-b border-line last:border-b-0">
+                      <td className="px-3 py-2 font-semibold text-ink">
+                        {line.side === 'AWAY' ? '🇻🇪' : '🇯🇵'} {pitcher ? pitcher.name[lang] : line.playerId}
+                      </td>
+                      <td className="px-2 py-2 text-center tabular-nums text-ink">{line.ip.toFixed(1)}</td>
+                      <td className="px-2 py-2 text-center tabular-nums text-ink">{line.hitsAllowed}</td>
+                      <td className="px-2 py-2 text-center tabular-nums text-ink">{line.runsAllowed}</td>
+                      <td className="px-2 py-2 text-center tabular-nums text-ink">{line.walks}</td>
+                      <td className="px-2 py-2 text-center tabular-nums text-ink">{line.strikeouts}</td>
+                      <td className="px-2 py-2 text-center tabular-nums text-ink">{line.homeRunsAllowed}</td>
+                      <td className="px-3 py-2 text-center font-bold text-navy">{line.decision ?? '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 互動情境模擬 */}
+          <div className="mt-8 flex items-center gap-2 border-t border-dashed border-line-strong pt-6">
+            <Gauge size={15} className="text-plum" />
+            <h3 className="text-sm font-bold text-plum">
+              {lang === 'zh' ? '互動情境模擬（假設情境，非真實發生）' : 'Interactive What-If Simulation (hypothetical, did not really happen)'}
+            </h3>
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-muted">
+            {lang === 'zh'
+              ? '以下勝率曲線、關鍵轉折點與調度決策，全部來自「如果日本教練在七局下續投先發而非換投」的模擬情境，用來示範總教練模式怎麼運作，不是真實比賽內容。'
+              : "The win-probability curve, turning points, and decision comparison below all come from a simulated 'what if the Japanese manager had held his starter instead of changing pitchers in the 7th' scenario — a demo of how manager mode works, not real game content."}
+          </p>
+
+          <div className="mt-3">
+            <WinProbabilityChart
+              points={review.winProbability}
+              crucialPlays={review.crucialPlays}
+              lang={lang}
+              homeLabel="JPN"
+              awayLabel="VEN"
+              height={320}
+            />
+          </div>
 
           <div className="mt-4">
-            <CrucialPlayAlert play={topPlay} lang={lang} featured />
+            <CrucialPlayAlert play={topSimulatedPlay} lang={lang} featured />
           </div>
 
           {/* 調度解析 */}
@@ -463,10 +480,10 @@ export default async function CaseStudyPage({ params }: { params: Promise<{ lang
 
           <div className="mt-4">
             <h3 className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-ink-muted">
-              {lang === 'zh' ? '其餘關鍵轉折點' : 'Other turning points'}
+              {lang === 'zh' ? '其餘關鍵轉折點（模擬情境）' : 'Other turning points (simulated)'}
             </h3>
             <CrucialPlayList
-              plays={review.crucialPlays.filter((p) => p.id !== topPlay.id)}
+              plays={review.crucialPlays.filter((p) => p.id !== topSimulatedPlay.id)}
               lang={lang}
             />
           </div>
